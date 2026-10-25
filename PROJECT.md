@@ -2,6 +2,8 @@
 
 - 项目版本：0.1.0（公开预览版）
 - 最近实质修改日期：2026-10-25
+- 公开仓库：https://github.com/yan450863-ui/PCWatt
+- 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.1.0
 
 ## 项目简介
 
@@ -48,6 +50,7 @@
 - 工程与可运行版本集中放在 `D:\工作间\PCWatt`，沿用原有解决方案结构。
 - 本地工程入口：根目录 `启动.cmd` 调用 src/PCWatt.App/bin/Release/net10.0-windows/Launch.cmd，未构建时先执行 Release 构建；该工程入口需要 .NET 10 SDK，已有构建运行需要对应 Desktop Runtime。
 - 对外安装包：artifacts/releases/0.1.0/PCWatt-0.1.0-Setup-win-x64.exe，另有完整解压 ZIP、使用说明及 SHA256。安装版/解压版自带 .NET 10.0.12，直接运行 PCWatt.App.exe，无需单独安装运行时。旧预览目录和 ZIP 均保留。
+- 本项目根目录已接入公开仓库 main，正常 git 操作在此执行；artifacts/releases/0.1.0/source 是首发时冻结的源码暂存，不作为后续日常开发目录。
 - 安装默认在当前用户 Programs/PCWatt，可选择目录；卸载保留 `%LOCALAPPDATA%\PCWatt` 中的数据、电价和设置。独立版自启动和管理员授权直接使用安装目录主 EXE，不依赖系统 dotnet 或复制出的框架启动器。
 - 默认关闭窗口后释放界面并留在托盘，完全退出使用托盘菜单；自启动可在设置中关闭。
 - 小型自启动器部署到 `%LOCALAPPDATA%\PCWatt\Launcher`，主软件仍在 D 盘，不改系统 ACL/权限标签。默认请求正常 Windows UAC 授权，可独立关闭或取消；管理员交接等待原实例保存退出，不创建重复采样循环，不绕过授权或安装驱动。

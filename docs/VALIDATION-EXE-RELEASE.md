@@ -22,3 +22,5 @@
 安装器当前用户安装，不需要管理员；应用读取 CPU 等硬件时仍遵循用户偏好及正常 UAC。安装包未作 Authenticode 签名，未宣称已通过 SmartScreen 信誉认证。未实机覆盖 Windows 10、全硬件、所有 DPI、休眠/登录自启动与长时资源曲线。
 
 公开介绍位于 README.md，原详细工程说明保留于 docs/DEVELOPMENT.md，发布说明在 docs/releases/0.1.0.md。发布使用的源码单独暂存，不包含构建缓存、诊断、备份、真实数据库、设置或凭据。
+
+公开仓库为 https://github.com/yan450863-ui/PCWatt ，Release 为 https://github.com/yan450863-ui/PCWatt/releases/tag/v0.1.0 。公开安装包重新下载共 57,225,870 字节，SHA256 与本地产物一致；四个附件的 GitHub SHA256 与本地均相符。安装包和 ZIP 的公开下载地址使用 v0.1.0，中文说明附件采用 ASCII 文件名 PCWatt-0.1.0-Readme-zh-CN.txt。发布及下载核对记录仅在本地 artifacts/releases/0.1.0/github-release.json 与 artifacts/diagnostics/github-public-download.json。

@@ -4,9 +4,9 @@
 
 **当前已接入真实硬件组件功率与自动整机估算。** CPU/GPU 优先读取设备功率；内存、硬盘、风扇等有瓦数接口时使用读数，否则采用明确标注的通用估算。不会把转速、温度或负载当成瓦数，不把组件之和标为整机实测。原有模拟记录单独保留。
 
-已实现工程骨架、生命周期与设置、人民币电价历史、通知、真实组件采集、自动整机估算、电费优先的部件切换、日/月/年耗电图表（分色堆叠柱与总量折线）、温度/占用率、显示器会话状态和托盘悬浮读数。产品基线见 [PRODUCT-REQUIREMENTS](PRODUCT-REQUIREMENTS.md)，后续安排见 [ROADMAP](ROADMAP.md)，最新验证见 [图表与显示器状态验证](VALIDATION-CHART-DISPLAY.md)。
+已实现工程骨架、生命周期与设置、人民币电价历史、通知、真实组件采集、自动整机估算、电费优先的部件切换、日/月/年耗电图表（分色堆叠柱与总量折线）、温度/占用率、显示器会话状态和托盘悬浮读数。产品基线见 [PRODUCT-REQUIREMENTS](PRODUCT-REQUIREMENTS.md)，后续安排见 [ROADMAP](ROADMAP.md)，最新验证见 [EXE 发行验证](VALIDATION-EXE-RELEASE.md)。
 
-项目当前位于 `D:\工作间\PCWatt`。**双击根目录 [启动.cmd](../启动.cmd) 打开软件**；工程和当前状态见 [PROJECT.md](../PROJECT.md)。启动入口使用自身目录定位可运行预览，兼容中文和空格路径。
+项目当前位于 `D:\工作间\PCWatt`。本地工程双击根目录 [启动.cmd](../启动.cmd)，定位 Release 输出，尚未构建时调用 .NET 10 SDK 构建；兼容中文和空格路径。安装版用户使用桌面或开始菜单快捷方式，发行状态见 [PROJECT.md](../PROJECT.md)。
 
 ## 构建与运行
 
@@ -21,11 +21,11 @@ dotnet test PCWatt.sln
 
 也可使用 Visual Studio 打开 `PCWatt.sln`。`global.json` 接受 .NET 10 正式版 feature band，当前验证使用 SDK 10.0.401。构建不需要管理员权限；WPF 与渲染测试需要 Windows，Core 和 Infrastructure 自身以 `net10.0` 为目标。
 
-本机最新运行目录为 `artifacts/PCWatt-calm-chart-display-preview/`，发布包为 `artifacts/PCWatt-calm-chart-display-win-x64-framework-dependent.zip`。完整工程双击根目录 `启动.cmd`；独立解压包双击 `Launch.cmd`。需要 x64 .NET 10 Windows Desktop Runtime，保留整个目录（包括 launcher 子目录）。构建产物不纳入源码版本控制。正在运行旧窗口时，从托盘正常退出后重新打开即可使用新版。
+当前发行在 `artifacts/releases/0.1.0/`，提供自包含 EXE 安装器和完整 ZIP，包含 .NET 10.0.12；用户直接运行安装后的 PCWatt.App.exe，无需预装 .NET。旧框架依赖预览保留在 artifacts 内；框架依赖构建仍需要 Desktop Runtime。构建产物不纳入源码版本控制，升级前从托盘正常退出旧版。
 
 启动入口使用已安装的 .NET 运行时加载 `PCWatt.App.dll`，程序主进程不附带控制台窗口。Windows PowerShell 仅作为短暂的启动辅助，不是常驻后台进程。该方式兼容本工作区生成 exe 继承低完整性标签的环境；直接双击受限 exe 会显示中文指引，尚未写入用户设置或数据库时即停止。
 
-程序默认启用当前用户登录后自启动。首次运行将小型无窗口启动器正常部署到 `%LOCALAPPDATA%\PCWatt\Launcher`，主程序保留在 D 盘；HKCU Run 直接调用该启动器的 `--background`，不经过 cmd 或 PowerShell。辅助进程创建隐藏的 .NET 主进程后退出，不增加常驻进程。关闭自启动立即移除本程序注册项，不影响当前运行。移动主目录后正常运行一次即可更新目标路径。
+程序默认启用当前用户登录后自启动。自包含安装版在 HKCU Run 直接调用安装目录 PCWatt.App.exe 的 `--background`，管理员授权同样直接使用该 EXE。框架依赖开发版仍将小型无窗口启动器部署到 `%LOCALAPPDATA%\PCWatt\Launcher`，由它调用系统 dotnet；辅助进程随后退出。两种模式均不增加常驻进程，关闭自启动立即移除本程序注册项，不影响当前运行。移动主目录后正常运行一次更新启动路径。
 
 **默认开启“启动时读取完整硬件”**：首次手动启动或登录自启动时，通过正常 Windows UAC 请求管理员授权，以便读取 CPU。已在运行时不重复请求；选择“否”仍继续普通权限记录可读硬件与明确标注的部件估算。设置中可独立关闭，下次启动生效。程序不绕过 UAC，不创建高权限计划任务、不安装驱动；授权后仍需要设备与现有接口支持。普通模式的“启用 CPU 读取”会请求授权，原进程保存数据并退出后，由新实例接手。
 
@@ -180,7 +180,7 @@ CPU 温度优先采用 Tdie、Tctl/Tdie 或 Package，部分设备仅提供 Tctl
 
 后台不保留隐藏窗口和图表缓存，点击托盘再加载。测试确认反复重建窗口不增加采样循环，停止动效后没有动画时钟；尚未测得新版实际工作集、私有内存和长期下降幅度。硬件库与 .NET 运行时仍是监控必要部分，不能将“界面释放”理解为固定内存承诺。详见 [当前验证](VALIDATION-FOREGROUND-MOTION.md)。
 
-当前 Debug 与 Release 各 257 项测试通过；构建零警告、零错误。保留分组、计费、恢复、统一时间轴、分色守恒、折线缺失断开/真实零值连接、隐藏界面释放及取消查询测试。另验证显示状态初始回调、亮/熄/调暗/未知、去重、无关与异常载荷、注册失败、释放及迟到通知、订阅者异常隔离、熄屏停动效但不影响记录及费用。三周期默认和最小尺寸、内存单项及悬浮卡已完成实际 XAML 渲染；结果见 [当前验证](VALIDATION-CHART-DISPLAY.md)。
+当前 Debug 与 Release 各 260 项测试通过；构建零警告、零错误。保留积分、计费、恢复、图表、显示状态、后台与界面生命周期测试；新增独立版自启动/授权及框架依赖回退验证。真实安装、原生 SQLite / 自带运行时加载、卸载和保留原设置均通过；见 [当前发行验证](VALIDATION-EXE-RELEASE.md)。图表与显示器规则见 [图表验证](VALIDATION-CHART-DISPLAY.md)。
 
 渲染测试解析实际 XAML，并输出概览默认/最小布局、设置页、电价表单默认/最小布局及报告详情到 `artifacts/ui/`。固定样本只属于布局测试，不写入用户数据库。测试不会修改真实自启动项或发送真实系统通知。
 

@@ -78,8 +78,9 @@ else:
     assets = []
     for name in expected:
         path = directory / name
+        remote_name = f'PCWatt-{args.version}-Readme-zh-CN.txt' if name == '使用说明.txt' else name
         connection = http.client.HTTPSConnection(parsed.hostname, timeout=300)
-        connection.putrequest('POST', parsed.path + '?' + urllib.parse.urlencode({'name': name}))
+        connection.putrequest('POST', parsed.path + '?' + urllib.parse.urlencode({'name': remote_name}))
         for key, value in dict(headers, **{'Content-Type': 'application/octet-stream', 'Content-Length': str(path.stat().st_size)}).items():
             connection.putheader(key, value)
         connection.endheaders()
@@ -101,6 +102,8 @@ else:
     verification = api('GET', repository + '/releases/tags/v' + args.version)
     if verification['draft'] or len(verification['assets']) != len(expected):
         raise SystemExit('Published release metadata did not match expected assets.')
+    # Draft upload URLs contain temporary untagged names; only published URLs are deliverables.
+    assets = [{'name': a['name'], 'bytes': a['size'], 'sha256': a.get('digest'), 'url': a['browser_download_url']} for a in verification['assets']]
     record = {'url': published['html_url'], 'commit': commit, 'prerelease': published['prerelease'], 'assets': assets}
     (directory / 'github-release.json').write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding='utf-8')
     print(json.dumps(record, ensure_ascii=False))
