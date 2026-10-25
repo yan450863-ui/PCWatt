@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="其他硬件">
+  <circle cx="48" cy="48" r="43" fill="#EFF8F6"/>
+  <path d="M31 45 L31 59 L64 59 L64 39 M48 27 L48 59" fill="none" stroke="#B0DCD0" stroke-width="2.5"/>
+  <path d="M31 45 L31 59 L64 59 L64 39" fill="none" stroke="#0F766E" stroke-width="2.5" stroke-dasharray="5 27"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="5s" repeatCount="indefinite"/></path>
+  <rect x="20" y="24" width="23" height="23" rx="6" fill="#FFFFFF" stroke="#6F9F8A" stroke-width="1.5"/>
+  <circle cx="31" cy="35" r="5" fill="#CCE4D9"/>
+  <rect x="55" y="22" width="23" height="20" rx="5" fill="#FFFFFF" stroke="#6F9F8A" stroke-width="1.5"/>
+  <rect x="36" y="61" width="24" height="17" rx="4" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
+  <path d="M43 69 L53 69" fill="none" stroke="#0F766E" stroke-width="2"/>
+</svg>

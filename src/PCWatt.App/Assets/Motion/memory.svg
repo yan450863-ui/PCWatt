@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="内存条">
+  <circle cx="48" cy="48" r="43" fill="#F6F0FD"/>
+  <rect x="14" y="32" width="68" height="31" rx="5" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2"/>
+  <path d="M23 64 L23 70 M30 64 L30 70 M37 64 L37 70 M44 64 L44 70 M54 64 L54 70 M61 64 L61 70 M68 64 L68 70 M75 64 L75 70" fill="none" stroke="#BC9ADE" stroke-width="2.5"/>
+  <rect x="23" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" repeatCount="indefinite"/></rect>
+  <rect x="42" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" begin="0.5s" repeatCount="indefinite"/></rect>
+  <rect x="61" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" begin="1s" repeatCount="indefinite"/></rect>
+</svg>

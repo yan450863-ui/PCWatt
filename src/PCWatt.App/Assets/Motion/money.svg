@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="人民币电费">
+  <circle cx="48" cy="48" r="43" fill="#E7F4EE"/>
+  <path d="M19 59 L19 68 C19 79 67 79 67 68 L67 59 Z" fill="#C0DED0" stroke="#6F9F8A" stroke-width="1.5"/>
+  <path d="M19 59 C19 48 67 48 67 59 C67 70 19 70 19 59 Z" fill="#EAF5EE" stroke="#6F9F8A" stroke-width="1.5"/>
+  <circle cx="54" cy="40" r="25" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="54" cy="40" r="19" fill="#E4F3EB"/>
+  <path d="M44 28 L54 41 L64 28 M44 40 L64 40 M44 47 L64 47 M54 40 L54 55" fill="none" stroke="#0F766E" stroke-width="2.5"/>
+  <path d="M30 27 A25 25 0 0 1 71 22" fill="none" stroke="#7DBFB0" stroke-width="3" stroke-dasharray="7 45">
+    <animate attributeName="stroke-dashoffset" from="0" to="-52" dur="4s" repeatCount="indefinite"/>
+  </path>
+  <path d="M77 62 L77 74 M71 68 L83 68" fill="none" stroke="#0F766E" stroke-width="2" opacity="0.35"><animate attributeName="opacity" values="0.35;1;0.35" dur="3s" repeatCount="indefinite"/></path>
+</svg>

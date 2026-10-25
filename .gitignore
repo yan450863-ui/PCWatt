@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+artifacts/
+*.db
+*.db-shm
+*.db-wal
+*.log
+appsettings.local.json

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="显卡风扇">
+  <circle cx="48" cy="48" r="43" fill="#FFF4EA"/>
+  <rect x="16" y="29" width="64" height="37" rx="7" fill="#FFFFFF" stroke="#D97725" stroke-width="2"/>
+  <path d="M25 67 L25 73 M33 67 L33 73 M41 67 L41 73 M49 67 L49 73 M57 67 L57 73 M72 25 L81 25 L81 71" fill="none" stroke="#D9A67B" stroke-width="2"/>
+  <circle cx="36" cy="47" r="12" fill="#FCE4D0"/>
+  <circle cx="62" cy="47" r="12" fill="#FCE4D0"/>
+  <g><animateTransform attributeName="transform" type="rotate" from="0 36 47" to="360 36 47" dur="12s" repeatCount="indefinite"/>
+    <path d="M36 47 L34 38 C42 36 45 43 36 47 M36 47 L45 45 C47 53 40 56 36 47 M36 47 L38 56 C30 58 27 51 36 47 M36 47 L27 49 C25 41 32 38 36 47" fill="#E6924E"/>
+  </g>
+  <g><animateTransform attributeName="transform" type="rotate" from="0 62 47" to="360 62 47" dur="12s" repeatCount="indefinite"/>
+    <path d="M62 47 L60 38 C68 36 71 43 62 47 M62 47 L71 45 C73 53 66 56 62 47 M62 47 L64 56 C56 58 53 51 62 47 M62 47 L53 49 C51 41 58 38 62 47" fill="#E6924E"/>
+  </g>
+  <circle cx="36" cy="47" r="2.5" fill="#B75E1C"/><circle cx="62" cy="47" r="2.5" fill="#B75E1C"/>
+</svg>

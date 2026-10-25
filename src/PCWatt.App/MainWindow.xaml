@@ -1,0 +1,493 @@
+<Window x:Class="PCWatt.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:PCWatt.App.Controls" Title="{Binding WindowTitle}" Width="1140" Height="780" MinWidth="960" MinHeight="700" WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize" UseLayoutRounding="True" SnapsToDevicePixels="True" Background="{StaticResource WindowBg}" FontFamily="{StaticResource UiFont}" FontSize="12.5" Language="zh-CN" TextOptions.TextRenderingMode="ClearType">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="46" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+    <Border Background="{StaticResource WindowBg}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="46" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ═══ 自绘标题栏 ═══ -->
+            <Grid Grid.Row="0" Background="{StaticResource ShellBg}">
+                <Border Height="1" VerticalAlignment="Bottom" Margin="72,0,0,0" Background="{StaticResource StrokeSoft}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="17,0,0,0" VerticalAlignment="Center">
+                        <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource Accent}">
+                            <Path Data="M13,2 L5,14 L10,14 L8,22 L19,9 L13,9 Z" Fill="#FFFFFF" Stretch="Uniform" Width="11" Height="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="PC Watt" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" />
+                        <Border Width="1" Height="12" Background="{StaticResource StrokeHi}" Margin="12,0,12,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PageTitle}" VerticalAlignment="Center" FontSize="11.5" Foreground="{StaticResource Ink3}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                        <Border Style="{StaticResource Chip}" Margin="0,0,10,0" Background="Transparent" BorderBrush="{StaticResource Stroke}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="5" Height="5" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource Warn}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSampling}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource Accent}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{StaticResource Ink3}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <Button x:Name="MinimizeButton" Style="{StaticResource WindowButton}" Click="MinimizeClick" ToolTip="最小化" WindowChrome.IsHitTestVisibleInChrome="True">
+                            <TextBlock Text="&#xE921;" FontFamily="{StaticResource GlyphFont}" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+                        <Button x:Name="MaximizeButton" Style="{StaticResource WindowButton}" Click="ToggleMaximizeClick" ToolTip="最大化" WindowChrome.IsHitTestVisibleInChrome="True">
+                            <TextBlock x:Name="MaximizeGlyph" Text="&#xE922;" FontFamily="{StaticResource GlyphFont}" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+                        <Button x:Name="CloseButton" Style="{StaticResource CloseWindowButton}" Click="CloseClick" ToolTip="关闭" WindowChrome.IsHitTestVisibleInChrome="True">
+                            <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource GlyphFont}" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ═══ 主体：侧栏 + 内容 ═══ -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Background="{StaticResource ShellBg}" BorderBrush="{StaticResource StrokeSoft}" BorderThickness="0,0,1,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Margin="0,8,0,0">
+                            <Button Style="{StaticResource Navigation}" Tag="{Binding IsOverview}" Command="{Binding ShowOverviewCommand}" ToolTip="能耗概览">
+                                <StackPanel>
+                                    <Path Data="M0,13 L5,13 L9,4 L14,21 L19,10 L25,10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" Width="21" Height="20" Stretch="Uniform" HorizontalAlignment="Center" />
+                                    <TextBlock Text="概览" FontSize="10.5" Margin="0,7,0,0" HorizontalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Navigation}" Tag="{Binding IsSettings}" Command="{Binding ShowSettingsCommand}" ToolTip="偏好设置">
+                                <StackPanel>
+                                    <Path Data="M0,5 L24,5 M0,12 L24,12 M0,19 L24,19 M6,1 L6,9 M17,8 L17,16 M9,15 L9,23" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center" />
+                                    <TextBlock Text="设置" FontSize="10.5" Margin="0,7,0,0" HorizontalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Margin="0,0,0,16" HorizontalAlignment="Center">
+                            <Ellipse Width="5" Height="5" HorizontalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource Warn}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSampling}" Value="True">
+                                                <Setter Property="Fill" Value="{StaticResource Accent}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="LOCAL" FontFamily="{StaticResource NumberFont}" FontSize="8" Foreground="{StaticResource Ink3}" HorizontalAlignment="Center" Margin="0,7,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                        <Grid Margin="22,14,22,14">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- ═══ 页头 ═══ -->
+                            <Grid Margin="0,0,0,12">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding PageTitle}" Style="{StaticResource H1}" />
+                                    <TextBlock Text="{Binding PageSubtitle}" Style="{StaticResource Caption}" FontSize="11" Margin="0,5,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DateLabel}" Style="{StaticResource Caption}" FontSize="10.5" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding ClockText}" FontFamily="{StaticResource NumberFont}" FontSize="15" HorizontalAlignment="Right" Margin="0,2,0,0" Foreground="{StaticResource Ink2}" Typography.NumeralAlignment="Tabular" />
+                                    </StackPanel>
+                                    <Button Command="{Binding ToggleSamplingCommand}" Content="{Binding SamplingButtonText}" Style="{StaticResource PrimaryButton}" Padding="15,8" AutomationProperties.AutomationId="ToggleSampling" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- ═══ 概览 ═══ -->
+                            <Grid Grid.Row="1" Visibility="{Binding IsOverview, Converter={StaticResource VisibleWhenTrue}}">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <Border Style="{StaticResource SegmentTrack}" Margin="0,0,0,10" Visibility="{Binding HasHardwareChannels, Converter={StaticResource VisibleWhenTrue}}">
+                                    <ItemsControl x:Name="CategorySelector" ItemsSource="{Binding PowerCategories}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate><DataTemplate>
+                                            <RadioButton Style="{StaticResource PowerCategoryChoice}" Content="{Binding Name}" GroupName="PowerCategory" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" AutomationProperties.Name="{Binding Name}" />
+                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                                <ItemsControl Grid.Row="1" x:Name="DeviceSelector" ItemsSource="{Binding DeviceOptions}" Margin="0,0,0,10" Visibility="{Binding HasDeviceChoices, Converter={StaticResource VisibleWhenTrue}}">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <RadioButton Style="{StaticResource DeviceChoice}" Content="{Binding Name}" GroupName="PowerDevice" IsChecked="{Binding IsSelected, Mode=OneWay}" ToolTip="{Binding Description}"
+                                            Command="{Binding DataContext.SelectDeviceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Name}" />
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Border Grid.Row="2" Background="{StaticResource WarnSoft}" BorderBrush="{StaticResource WarnBorder}" BorderThickness="1" CornerRadius="10" Padding="14,7" Margin="0,0,0,10" Visibility="{Binding ShowCpuPermissionHelp, Converter={StaticResource VisibleWhenTrue}}">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="启用 CPU 读取" Command="{Binding Settings.EnableCpuReadCommand}" Padding="12,6" Margin="12,0,0,0" />
+                                        <TextBlock Text="允许 Windows 授权后，可尝试读取 CPU 功耗。" Foreground="{StaticResource Warn}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!-- 指标卡：电费（今日/本月/今年切换）+ 当前功率 -->
+                                <Grid Grid.Row="3" Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.55*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource CardHero}" Padding="18,14" Margin="0,0,10,0">
+                                        <Grid>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <Grid>
+                                                <TextBlock Text="整机电费" Foreground="#3A625B" FontSize="11.5" />
+                                                <Border Style="{StaticResource ChipAccent}" HorizontalAlignment="Right">
+                                                    <TextBlock Text="整机估算" Foreground="{StaticResource Accent}" FontSize="9.5" ToolTip="{Binding BillingScope}" />
+                                                </Border>
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,9,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock x:Name="BillingCostValue" Text="{Binding BillingCost}" Style="{StaticResource Metric}" FontSize="34" Foreground="#10312E" AutomationProperties.AutomationId="BillingCost" />
+                                                    <TextBlock Text="元" Foreground="#4A7069" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,6" />
+                                                </StackPanel>
+                                                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#E5EDE9" BorderBrush="{StaticResource AccentBorder}" BorderThickness="1" CornerRadius="9" Padding="3">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <RadioButton Style="{StaticResource PeriodChoice}" Content="今日" GroupName="BillingPeriod" IsChecked="{Binding IsDayPeriod, Mode=OneWay}" Command="{Binding ShowDayBillingCommand}" AutomationProperties.Name="今日电费" />
+                                                        <RadioButton Style="{StaticResource PeriodChoice}" Content="本月" GroupName="BillingPeriod" IsChecked="{Binding IsMonthPeriod, Mode=OneWay}" Command="{Binding ShowMonthBillingCommand}" AutomationProperties.Name="本月电费" />
+                                                        <RadioButton Style="{StaticResource PeriodChoice}" Content="今年" GroupName="BillingPeriod" IsChecked="{Binding IsYearPeriod, Mode=OneWay}" Command="{Binding ShowYearBillingCommand}" AutomationProperties.Name="今年电费" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <Grid Grid.Row="2" Margin="0,5,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding BillingEnergy}" Foreground="#33564F" FontSize="11" />
+                                                    <TextBlock Text="{Binding BillingHint}" Foreground="#5C7D76" FontSize="10.5" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <controls:SvgMotion x:Name="MoneyMotion" Grid.Column="1" Asset="money" Playing="{Binding DecorativeMotionEnabled}" Width="60" Height="44" Margin="8,0,0,0" AutomationProperties.Name="电费装饰图标" />
+                                            </Grid>
+                                            <ProgressBar Grid.Row="3" Style="{StaticResource CoverageBar}" Value="{Binding BillingCoveragePercent, Mode=OneWay}" Foreground="{StaticResource Accent}" Margin="0,0,0,6" AutomationProperties.Name="所选区间整机电量覆盖率" />
+                                            <TextBlock Grid.Row="4" Text="{Binding BillingCoverage}" Foreground="#6C857F" FontSize="10" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource Card}" Padding="18,14" ToolTip="切换部件只影响功率与曲线，电费始终按整机统计">
+                                        <Grid>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <Grid>
+                                                <TextBlock Text="{Binding PowerHeading}" Style="{StaticResource Caption}" FontSize="11.5" />
+                                                <Border Style="{StaticResource Chip}" HorizontalAlignment="Right">
+                                                    <TextBlock Text="{Binding CompactDataBadge}" Style="{StaticResource Caption}" FontSize="9.5" />
+                                                </Border>
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,9,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <controls:AnimatedPower Value="{Binding PowerWatts}" MotionEnabled="{Binding RenderMotionEnabled}" Style="{StaticResource Metric}" FontSize="26" AutomationProperties.AutomationId="CurrentPower" />
+                                                    <TextBlock Text="W" Style="{StaticResource Unit}" FontSize="12" />
+                                                </StackPanel>
+                                                <controls:SvgMotion x:Name="HardwareMotion" Asset="{Binding SelectedCategoryKey}" Playing="{Binding DecorativeMotionEnabled}" Width="60" Height="44" HorizontalAlignment="Right" AutomationProperties.Name="硬件装饰图标" />
+                                            </Grid>
+                                            <TextBlock Grid.Row="2" Text="{Binding CompactPowerHint}" Style="{StaticResource Caption}" FontSize="10.5" Margin="0,9,0,0" TextTrimming="CharacterEllipsis" />
+                                            <Grid Grid.Row="3" Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="近 10 分钟平均" Style="{StaticResource Caption}" FontSize="9.5" />
+                                                    <TextBlock Text="{Binding AveragePowerLabel}" FontFamily="{StaticResource NumberFont}" FontSize="12" Foreground="{StaticResource Ink2}" Margin="0,3,0,0" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="峰值" Style="{StaticResource Caption}" FontSize="9.5" />
+                                                    <TextBlock Text="{Binding PeakPowerLabel}" FontFamily="{StaticResource NumberFont}" FontSize="12" Foreground="{StaticResource Ink2}" Margin="0,3,0,0" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- 曲线卡 -->
+                                <Border Grid.Row="4" Style="{StaticResource Card}" Padding="18,12,18,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid Margin="0,0,0,8">
+                                            <StackPanel Margin="0,0,16,0">
+                                                <TextBlock Text="{Binding ChartHeading}" Style="{StaticResource H2}" />
+                                                <TextBlock Text="{Binding SelectedHardwareName}" Style="{StaticResource Caption}" FontSize="10.5" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedChannelDetail}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                                <TextBlock x:Name="ChartRangeLabel" Text="{Binding ChartRangeLabel}" Style="{StaticResource Caption}" FontSize="10" VerticalAlignment="Center" />
+                                                <Border Style="{StaticResource Chip}" Margin="10,0,0,0" ToolTip="{Binding ChartDescription}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding ChartMetricCaption}" Style="{StaticResource Caption}" FontSize="9.5" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding ChartMetricValue}" FontFamily="{StaticResource NumberFont}" FontSize="10.5" Foreground="{StaticResource Ink2}" Margin="5,0,0,0" VerticalAlignment="Center" />
+                                                        <Border Width="1" Height="9" Background="{StaticResource StrokeHi}" Margin="9,0" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding ChartSecondCaption}" Style="{StaticResource Caption}" FontSize="9.5" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding ChartSecondValue}" FontFamily="{StaticResource NumberFont}" FontSize="10.5" Foreground="{StaticResource Ink2}" Margin="5,0,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Grid.Row="1" x:Name="UtilizationPanel" Margin="0,2,0,0" ToolTip="{Binding UtilizationDetails}">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0">
+                                                <Grid>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="CPU 占用" Style="{StaticResource Caption}" FontSize="10.5" VerticalAlignment="Center" />
+                                                        <TextBlock x:Name="CpuUtilizationValue" Text="{Binding CpuUtilization}" FontSize="12" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock x:Name="CpuTemperatureValue" Text="{Binding CpuTemperature}" FontSize="10.5" Foreground="{StaticResource Ink3}" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding CpuTemperatureDetail}" />
+                                                </Grid>
+                                                <ProgressBar Style="{StaticResource UsageBar}" Value="{Binding CpuUtilizationValue, Mode=OneWay}" Margin="0,6,0,0" AutomationProperties.Name="CPU 占用率" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                                <Grid>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="显卡占用" Style="{StaticResource Caption}" FontSize="10.5" VerticalAlignment="Center" />
+                                                        <TextBlock x:Name="GpuUtilizationValue" Text="{Binding GpuUtilization}" FontSize="12" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding GpuTemperature}" FontSize="10.5" Foreground="{StaticResource Ink3}" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding GpuTemperatureDetail}" />
+                                                </Grid>
+                                                <ProgressBar Style="{StaticResource UsageBar}" Value="{Binding GpuUtilizationValue, Mode=OneWay}" Margin="0,6,0,0" AutomationProperties.Name="显卡核心占用率" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                                                <Grid>
+                                                    <TextBlock Text="内存占用" Style="{StaticResource Caption}" FontSize="10.5" VerticalAlignment="Center" />
+                                                    <TextBlock x:Name="MemoryUtilizationValue" Text="{Binding MemoryUtilization}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                </Grid>
+                                                <ProgressBar Style="{StaticResource UsageBar}" Value="{Binding MemoryUtilizationValue, Mode=OneWay}" Margin="0,6,0,0" AutomationProperties.Name="物理内存占用率" />
+                                            </StackPanel>
+                                            <Border Grid.Column="3" BorderBrush="{StaticResource StrokeHi}" BorderThickness="1,0,0,0" Padding="14,0,0,0" ToolTip="{Binding DisplayDetail}">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <TextBlock Text="显示器" Style="{StaticResource Caption}" FontSize="10.5" />
+                                                        <TextBlock x:Name="DisplayStateValue" Text="{Binding DisplayStateText}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding DisplayPowerHint}" Style="{StaticResource Caption}" FontSize="9" Margin="0,3,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        <controls:PowerTrend Grid.Row="2" x:Name="Trend" Samples="{Binding TrendSamples}" Series="{Binding ChartSeries}" History="{Binding HistoryData}" IsHistoryMode="{Binding IsHistoryMode}" HistoryColor="{Binding ChartColor}" TimeZone="{Binding ChartTimeZone}" MotionEnabled="{Binding RenderMotionEnabled}" IsRecording="{Binding IsSampling}" MinHeight="140" Margin="0,4,0,0" AutomationProperties.Name="{Binding HistoryAccessibilityName}" />
+                                        <Grid Grid.Row="3" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding ChartFooter}" Style="{StaticResource Caption}" FontSize="10" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <TextBlock Text="数据覆盖" Style="{StaticResource Caption}" FontSize="10" />
+                                                <TextBlock Text="{Binding ChartCoverageText}" Foreground="{StaticResource Ink2}" FontSize="10" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!-- ═══ 设置 ═══ -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsSettings, Converter={StaticResource VisibleWhenTrue}}">
+                            <StackPanel DataContext="{Binding Settings}">
+                                <TextBlock Text="启动与后台" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <Grid>
+                                            <StackPanel Margin="0,0,70,0">
+                                                <TextBlock Text="登录 Windows 后自动启动" FontSize="12.5" />
+                                                <TextBlock Text="登录后自动记录；完整硬件模式会请求 Windows 授权" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                            <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding AutoStartEnabled, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="autostart" AutomationProperties.Name="开机自启动" />
+                                        </Grid>
+                                        <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,13" />
+                                        <Grid>
+                                            <StackPanel Margin="0,0,70,0">
+                                                <TextBlock Text="启动时读取完整硬件（推荐）" FontSize="12.5" />
+                                                <TextBlock Text="默认请求管理员授权，便于读取 CPU；取消后继续记录其他硬件" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                            <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding RequestAdministratorOnLaunch, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="administrator" AutomationProperties.Name="启动时读取完整硬件" />
+                                        </Grid>
+                                        <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,13" />
+                                        <Grid>
+                                            <StackPanel Margin="0,0,70,0">
+                                                <TextBlock Text="关闭主窗口后留在托盘" FontSize="12.5" />
+                                                <TextBlock Text="继续后台记录，可从托盘菜单完全退出" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                            <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding CloseToTray, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="tray" AutomationProperties.Name="关闭后进入托盘" />
+                                        </Grid>
+                                        <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,13" />
+                                        <Grid>
+                                            <StackPanel Margin="0,0,70,0">
+                                                <TextBlock Text="界面动效" FontSize="12.5" />
+                                                <TextBlock Text="数值过渡与曲线呼吸光点，窗口隐藏时自动停止" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                            <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MotionEnabled, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="motion" AutomationProperties.Name="界面动效" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="记录频率" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock Text="后台记录模式" FontSize="12.5" />
+                                        <TextBlock Text="默认一般（30 秒）。省电模式减少读取次数，可能漏掉短时峰值；切换图形不影响记录。" Style="{StaticResource Caption}" Margin="0,5,0,13" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Style="{StaticResource IntervalChoice}" GroupName="Interval" IsChecked="{Binding IsFive, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="5"><StackPanel><TextBlock Text="精细" HorizontalAlignment="Center" /><TextBlock Text="5 秒" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.75" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" /></StackPanel></RadioButton>
+                                            <RadioButton Style="{StaticResource IntervalChoice}" GroupName="Interval" IsChecked="{Binding IsTen, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="10"><StackPanel><TextBlock Text="细" HorizontalAlignment="Center" /><TextBlock Text="10 秒" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.75" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" /></StackPanel></RadioButton>
+                                            <RadioButton Style="{StaticResource IntervalChoice}" GroupName="Interval" IsChecked="{Binding IsThirty, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="30"><StackPanel><TextBlock Text="一般" HorizontalAlignment="Center" /><TextBlock Text="30 秒 · 默认" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.75" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" /></StackPanel></RadioButton>
+                                            <RadioButton Style="{StaticResource IntervalChoice}" GroupName="Interval" IsChecked="{Binding IsMinute, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="60"><StackPanel><TextBlock Text="省电" HorizontalAlignment="Center" /><TextBlock Text="1 分钟" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.75" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" /></StackPanel></RadioButton>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="通知" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Padding="7,5" Margin="0,0,0,16">
+                                    <Expander Header="通知与昨日报告（可选）">
+                                        <StackPanel>
+                                            <Grid>
+                                                <StackPanel Margin="0,0,70,0">
+                                                    <TextBlock Text="启动通知" FontSize="12.5" />
+                                                    <TextBlock Text="下次启动时提示当前记录状态" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                                </StackPanel>
+                                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding StartNotificationEnabled, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="startup-notice" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.Name="启动通知" />
+                                            </Grid>
+                                            <TextBlock Text="两项同时开启时合并发送，通知关闭不影响后台记录。" Style="{StaticResource Caption}" FontSize="10.5" Margin="0,10,0,0" />
+                                            <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,13" />
+                                            <Grid>
+                                                <StackPanel Margin="0,0,70,0">
+                                                    <TextBlock Text="昨日用电报告" FontSize="12.5" />
+                                                    <TextBlock Text="每天首次启动尝试发送，记录不足会明确提示" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                                </StackPanel>
+                                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding YesterdayReportEnabled, Mode=OneWay}" Command="{Binding ChangeCommand}" CommandParameter="yesterday-notice" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.Name="昨日用电报告" />
+                                            </Grid>
+                                            <Expander Header="查看昨日报告与计价口径" Margin="0,12,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding YesterdayDetails}" TextWrapping="Wrap" Foreground="{StaticResource Ink2}" FontSize="11" LineHeight="21" />
+                                                    <Button Content="刷新昨日报告" Command="{Binding LoadDetailsCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                                                </StackPanel>
+                                            </Expander>
+                                        </StackPanel>
+                                    </Expander>
+                                </Border>
+
+                                <TextBlock Text="计费" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TariffEditorHeading" Text="电价设置" FontSize="12.5" />
+                                        <TextBlock Text="使用人民币计费。1 度电 = 1 千瓦时，不计入整户固定月费。" Style="{StaticResource Caption}" Margin="0,5,0,14" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,12,0">
+                                                <TextBlock Text="电价（元/度）" Style="{StaticResource Caption}" Margin="0,0,0,7" />
+                                                <TextBox Text="{Binding PriceInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="电价（元/度）" ToolTip="输入人民币每度电的单价，例如 0.6；不会预设地区电价" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="本地生效日期" Style="{StaticResource Caption}" Margin="0,0,0,7" />
+                                                <DatePicker SelectedDate="{Binding EffectiveDate}" SelectedDateFormat="Short" AutomationProperties.Name="电价生效日期" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Button Content="保存为新电价版本" Command="{Binding SaveTariffCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,14,0,0" Padding="14,7" />
+                                        <TextBlock Text="{Binding TariffFeedback}" Foreground="{StaticResource Ink2}" TextWrapping="Wrap" FontSize="11" Margin="0,10,0,0" />
+                                        <Expander Header="电价历史" Margin="0,10,0,0" IsExpanded="True">
+                                            <ItemsControl ItemsSource="{Binding TariffHistory}">
+                                                <ItemsControl.ItemTemplate><DataTemplate>
+                                                    <Border Background="{StaticResource ShellBg}" BorderBrush="{StaticResource StrokeSoft}" BorderThickness="1" CornerRadius="7" Padding="11,7" Margin="0,0,0,5"><TextBlock Text="{Binding}" Foreground="{StaticResource Ink2}" FontSize="11" /></Border>
+                                                </DataTemplate></ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="高级" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Padding="7,5" Margin="0,0,0,16">
+                                    <Expander Header="高级：手动校准整机估算（可选）">
+                                        <StackPanel Margin="0,2,0,2">
+                                            <TextBlock Text="{Binding HardwareAccessStatus}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" Margin="0,0,0,10" FontSize="11.5" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Button Content="恢复自动估算" Command="{Binding UseAutomaticEstimateCommand}" Margin="0,0,8,0" />
+                                                <Button Content="启用 CPU 读取" Command="{Binding EnableCpuReadCommand}" />
+                                            </StackPanel>
+                                            <TextBlock Text="整机估算 =（CPU 封装 + 所选独显 + 其他部件功率）÷ 电源效率。不含显示器，不替代墙插功率计。" TextWrapping="Wrap" Style="{StaticResource Caption}" LineHeight="19" />
+                                            <TextBlock Text="日常使用无需配置以下参数。手动方案的“其他部件功率”替代内存、硬盘、风扇和主板的自动小计，避免重复计入。" TextWrapping="Wrap" Foreground="{StaticResource Warn}" FontSize="11" Margin="0,7,0,13" LineHeight="19" />
+                                            <TextBlock Text="CPU 封装来源（不可读时为空）" Style="{StaticResource Caption}" Margin="0,0,0,7" />
+                                            <ComboBox ItemsSource="{Binding EstimateCpuOptions}" SelectedValuePath="Id" SelectedValue="{Binding EstimateCpuSource, Mode=TwoWay}" Style="{StaticResource HardwarePicker}" AutomationProperties.Name="整机估算 CPU 封装来源">
+                                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding HardwareName}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Text="只勾选不与 CPU 封装重叠的独立显卡；核显 / 共享 SoC 不应重复计入" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,13,0,8" />
+                                            <ItemsControl ItemsSource="{Binding EstimateGpuOptions}"><ItemsControl.ItemTemplate><DataTemplate>
+                                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsIncluded}" Margin="0,0,0,9" />
+                                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <StackPanel Margin="0,0,12,0"><TextBlock Text="其他部件功率（W）" Style="{StaticResource Caption}" Margin="0,0,0,7" /><TextBox Text="{Binding OtherPowerInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="其他部件功率 W" /></StackPanel>
+                                                <StackPanel Grid.Column="1"><TextBlock Text="电源效率（%，1 至 100）" Style="{StaticResource Caption}" Margin="0,0,0,7" /><TextBox Text="{Binding EfficiencyInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="电源效率百分比" /></StackPanel>
+                                            </Grid>
+                                            <CheckBox IsChecked="{Binding EstimateConfirmed}" Margin="0,14,0,0">
+                                                <TextBlock Text="已确认所选为独显且无重叠，其他部件功率已覆盖其余部件（不含显示器）" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Ink2}" />
+                                            </CheckBox>
+                                            <Button Content="保存为新估算方案" Command="{Binding SaveEstimateCommand}" HorizontalAlignment="Left" Margin="0,13,0,0" />
+                                            <TextBlock Text="{Binding EstimateFeedback}" Foreground="{StaticResource Ink2}" TextWrapping="Wrap" FontSize="11" Margin="0,9,0,0" LineHeight="19" />
+                                        </StackPanel>
+                                    </Expander>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="关于 PC Watt" Style="{StaticResource H2}" />
+                                        <TextBlock Text="开源 · 本地优先 · 无账号 · 不上传数据" Foreground="{StaticResource Accent}" FontSize="11" Margin="0,8,0,6" />
+                                        <TextBlock Text="硬件遥测由 LibreHardwareMonitor 提供。MIT 许可及第三方许可声明随程序提供。" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                        <TextBlock Text="自启动失败日志：用户数据目录 PCWatt\logs\startup.log 和 launcher.log" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                        <TextBlock Text="{Binding Feedback}" Foreground="{StaticResource Ink2}" FontSize="11" Margin="0,14,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
+                    <!-- ═══ 状态栏 ═══ -->
+                    <Border Grid.Row="1" Background="{StaticResource ShellBg}" BorderBrush="{StaticResource StrokeSoft}" BorderThickness="0,1,0,0" Padding="20,5">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="5" Height="5" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource Warn}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSampling}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource Accent}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding RecordingHint}" Foreground="{StaticResource Ink3}" FontSize="10" Margin="7,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" FontSize="10" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ErrorMessage}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <TextBlock Text="{Binding SamplingCadence}" Foreground="{StaticResource Ink3}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

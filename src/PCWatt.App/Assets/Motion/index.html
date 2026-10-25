@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PC Watt · 前台动效预览</title>
+<style>
+:root{color-scheme:light;--paper:#f4f0e6;--ink:#1f2924;--muted:#7c887f;--accent:#0f766e;--line:#e2dacd}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);font:14px 'Microsoft YaHei UI',sans-serif;color:var(--ink)}
+main{max-width:1060px;margin:56px auto;padding:0 28px}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}h1{font-size:32px;letter-spacing:-1px;margin:6px 0}p{color:var(--muted);line-height:1.8}.eyebrow{letter-spacing:3px;font-size:11px;color:var(--accent)}
+button{font:inherit;border:1px solid var(--line);border-radius:11px;padding:12px 18px;color:var(--ink);background:#fff;cursor:pointer;transition:background .18s,box-shadow .18s,transform .18s}button:hover{box-shadow:0 5px 15px #0f766e12;transform:translateY(-1px)}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:5px;background:#ede7dc;border-radius:15px;margin-bottom:18px}nav button{border-color:transparent;background:transparent}nav button[aria-pressed=true]{background:white;border-color:#d4cbbd;box-shadow:0 2px 7px #263d2710}
+.cards{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}.card{border:1px solid var(--line);border-radius:22px;background:white;padding:26px;position:relative;overflow:hidden;min-height:208px}.money{background:linear-gradient(125deg,#edf7f2,#fcfdfb);border-color:#c3ddd1}.label{font-size:12px;color:#557468}.amount{font-size:56px;font-weight:300;letter-spacing:-2px;margin-top:16px}.unit{font-size:14px;letter-spacing:0;color:var(--muted);margin-left:8px}.art{position:absolute;width:110px;height:110px;right:20px;top:45px}.art svg{width:100%;height:100%}.asset[hidden]{display:none}.fine{font-size:12px;color:var(--muted);margin-top:12px}.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accent)}.status i{width:7px;height:7px;border-radius:50%;background:#0f766e}.note{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:20px}.badge{font-size:11px;border:1px solid #d9d1c4;border-radius:20px;padding:7px 12px;white-space:nowrap;background:#faf7f1}
+.strip{margin-top:18px;border:1px solid var(--line);border-radius:22px;padding:24px;background:#fff}.strip svg{width:100%;height:110px}.paused button{transition:none;transform:none}footer{font-size:12px;color:var(--muted);margin-top:22px}
+@media(max-width:680px){main{margin:24px auto;padding:0 16px}.cards{grid-template-columns:1fr}.art{width:90px;height:90px}h1{font-size:25px}.note{align-items:start;flex-direction:column}}
+</style>
+<main><header><div><span class="eyebrow">PC WATT / LOCAL ENERGY</span><h1>每一度，都看得见</h1><p>简洁读数，轻盈动效。后台只保留监控。</p></div><button id="toggle" type="button">暂停动效</button></header>
+<nav aria-label="切换硬件">
+<button type="button" data-kind="whole" aria-pressed="true">整机</button><button type="button" data-kind="cpu" aria-pressed="false">CPU</button><button type="button" data-kind="gpu" aria-pressed="false">显卡</button><button type="button" data-kind="memory" aria-pressed="false">内存</button><button type="button" data-kind="other" aria-pressed="false">其他</button></nav><section class="cards"><article class="card money"><div class="label">整机电费</div><div class="amount">—<span class="unit">元</span></div><div class="fine">打开 PC Watt 后显示本地记录</div><div class="art"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="人民币电费">
+  <circle cx="48" cy="48" r="43" fill="#E7F4EE"/>
+  <path d="M19 59 L19 68 C19 79 67 79 67 68 L67 59 Z" fill="#C0DED0" stroke="#6F9F8A" stroke-width="1.5"/>
+  <path d="M19 59 C19 48 67 48 67 59 C67 70 19 70 19 59 Z" fill="#EAF5EE" stroke="#6F9F8A" stroke-width="1.5"/>
+  <circle cx="54" cy="40" r="25" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="54" cy="40" r="19" fill="#E4F3EB"/>
+  <path d="M44 28 L54 41 L64 28 M44 40 L64 40 M44 47 L64 47 M54 40 L54 55" fill="none" stroke="#0F766E" stroke-width="2.5"/>
+  <path d="M30 27 A25 25 0 0 1 71 22" fill="none" stroke="#7DBFB0" stroke-width="3" stroke-dasharray="7 45">
+    <animate attributeName="stroke-dashoffset" from="0" to="-52" dur="4s" repeatCount="indefinite"/>
+  </path>
+  <path d="M77 62 L77 74 M71 68 L83 68" fill="none" stroke="#0F766E" stroke-width="2" opacity="0.35"><animate attributeName="opacity" values="0.35;1;0.35" dur="3s" repeatCount="indefinite"/></path>
+</svg>
+</div></article><article class="card"><div class="label" id="power-label">整机功率</div><div class="amount">—<span class="unit">W</span></div><div class="fine">装饰动画不代表设备负载或功率</div><div class="art"><div class="asset" data-asset="whole" ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="整机能量环">
+  <circle cx="48" cy="48" r="43" fill="#EFF8F6"/>
+  <circle cx="48" cy="48" r="34" fill="none" stroke="#D1E8E2" stroke-width="2"/>
+  <g><animateTransform attributeName="transform" type="rotate" from="0 48 48" to="360 48 48" dur="18s" repeatCount="indefinite"/>
+    <path d="M48 14 A34 34 0 0 1 82 48" fill="none" stroke="#0F766E" stroke-width="3"/>
+    <circle cx="82" cy="48" r="3" fill="#0F766E"/>
+    <path d="M48 82 A34 34 0 0 1 14 48" fill="none" stroke="#7DBFB0" stroke-width="3"/>
+  </g>
+  <circle cx="48" cy="48" r="25" fill="#DFF1EA" opacity="0.65"><animate attributeName="opacity" values="0.45;0.85;0.45" dur="4s" repeatCount="indefinite"/></circle>
+  <path d="M52 25 L34 50 L46 50 L41 71 L63 44 L50 44 Z" fill="#0F766E"/>
+</svg>
+</div><div class="asset" data-asset="cpu" hidden><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="CPU 芯片">
+  <circle cx="48" cy="48" r="43" fill="#EFF4FD"/>
+  <path d="M32 18 L32 29 M43 18 L43 29 M54 18 L54 29 M65 18 L65 29 M32 67 L32 78 M43 67 L43 78 M54 67 L54 78 M65 67 L65 78 M18 32 L29 32 M18 43 L29 43 M18 54 L29 54 M18 65 L29 65 M67 32 L78 32 M67 43 L78 43 M67 54 L78 54 M67 65 L78 65" fill="none" stroke="#7B9FE0" stroke-width="2"/>
+  <rect x="27" y="27" width="42" height="42" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <rect x="36" y="36" width="24" height="24" rx="5" fill="#DBE9FF"/>
+  <path d="M37 48 L44 48 L48 39 L52 56 L56 48 L61 48" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-dasharray="9 7">
+    <animate attributeName="stroke-dashoffset" from="0" to="-32" dur="3s" repeatCount="indefinite"/>
+  </path>
+</svg>
+</div><div class="asset" data-asset="gpu" hidden><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="显卡风扇">
+  <circle cx="48" cy="48" r="43" fill="#FFF4EA"/>
+  <rect x="16" y="29" width="64" height="37" rx="7" fill="#FFFFFF" stroke="#D97725" stroke-width="2"/>
+  <path d="M25 67 L25 73 M33 67 L33 73 M41 67 L41 73 M49 67 L49 73 M57 67 L57 73 M72 25 L81 25 L81 71" fill="none" stroke="#D9A67B" stroke-width="2"/>
+  <circle cx="36" cy="47" r="12" fill="#FCE4D0"/>
+  <circle cx="62" cy="47" r="12" fill="#FCE4D0"/>
+  <g><animateTransform attributeName="transform" type="rotate" from="0 36 47" to="360 36 47" dur="12s" repeatCount="indefinite"/>
+    <path d="M36 47 L34 38 C42 36 45 43 36 47 M36 47 L45 45 C47 53 40 56 36 47 M36 47 L38 56 C30 58 27 51 36 47 M36 47 L27 49 C25 41 32 38 36 47" fill="#E6924E"/>
+  </g>
+  <g><animateTransform attributeName="transform" type="rotate" from="0 62 47" to="360 62 47" dur="12s" repeatCount="indefinite"/>
+    <path d="M62 47 L60 38 C68 36 71 43 62 47 M62 47 L71 45 C73 53 66 56 62 47 M62 47 L64 56 C56 58 53 51 62 47 M62 47 L53 49 C51 41 58 38 62 47" fill="#E6924E"/>
+  </g>
+  <circle cx="36" cy="47" r="2.5" fill="#B75E1C"/><circle cx="62" cy="47" r="2.5" fill="#B75E1C"/>
+</svg>
+</div><div class="asset" data-asset="memory" hidden><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="内存条">
+  <circle cx="48" cy="48" r="43" fill="#F6F0FD"/>
+  <rect x="14" y="32" width="68" height="31" rx="5" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2"/>
+  <path d="M23 64 L23 70 M30 64 L30 70 M37 64 L37 70 M44 64 L44 70 M54 64 L54 70 M61 64 L61 70 M68 64 L68 70 M75 64 L75 70" fill="none" stroke="#BC9ADE" stroke-width="2.5"/>
+  <rect x="23" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" repeatCount="indefinite"/></rect>
+  <rect x="42" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" begin="0.5s" repeatCount="indefinite"/></rect>
+  <rect x="61" y="40" width="12" height="15" rx="2" fill="#A17ADB" opacity="0.5"><animate attributeName="opacity" values="0.5;1;0.5" dur="4s" begin="1s" repeatCount="indefinite"/></rect>
+</svg>
+</div><div class="asset" data-asset="other" hidden><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="其他硬件">
+  <circle cx="48" cy="48" r="43" fill="#EFF8F6"/>
+  <path d="M31 45 L31 59 L64 59 L64 39 M48 27 L48 59" fill="none" stroke="#B0DCD0" stroke-width="2.5"/>
+  <path d="M31 45 L31 59 L64 59 L64 39" fill="none" stroke="#0F766E" stroke-width="2.5" stroke-dasharray="5 27"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="5s" repeatCount="indefinite"/></path>
+  <rect x="20" y="24" width="23" height="23" rx="6" fill="#FFFFFF" stroke="#6F9F8A" stroke-width="1.5"/>
+  <circle cx="31" cy="35" r="5" fill="#CCE4D9"/>
+  <rect x="55" y="22" width="23" height="20" rx="5" fill="#FFFFFF" stroke="#6F9F8A" stroke-width="1.5"/>
+  <rect x="36" y="61" width="24" height="17" rx="4" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
+  <path d="M43 69 L53 69" fill="none" stroke="#0F766E" stroke-width="2"/>
+</svg>
+</div></div></article></section><div class="note"><div class="status"><i></i><span id="state">前台播放</span></div><span class="badge">HTML + SVG · 本地动效设计预览</span></div>
+<section class="strip" aria-label="装饰性曲线示意"><div class="label">安静记录，打开即看</div><svg viewBox="0 0 900 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0 80 H900" stroke="#e7e1d7" fill="none"/><path d="M0 74 C70 74 75 38 135 46 S230 83 280 63 S360 18 414 39 S490 71 545 51 S630 12 680 34 S800 67 900 22" stroke="#0f766e" stroke-width="2.5" fill="none"/></svg></section>
+<footer>这是动效设计预览，不连接硬件、不读取用户记录。应用使用同一套 SVG，由 WPF 播放，无浏览器常驻进程。</footer></main>
+<script>
+let enabled=true;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+function sync(){
+ const active=enabled&&!document.hidden&&document.hasFocus()&&!reduced.matches;
+ document.body.classList.toggle('paused',!active);
+ document.querySelectorAll('svg').forEach(svg=>{
+   const owner=svg.closest('.asset');
+   if(active&&(!owner||!owner.hidden))svg.unpauseAnimations();else svg.pauseAnimations();
+ });
+ document.getElementById('state').textContent=active?'前台播放':'动效已停止';
+ document.getElementById('toggle').textContent=enabled?'暂停动效':'开启动效';
+}
+document.getElementById('toggle').addEventListener('click',()=>{enabled=!enabled;sync()});
+document.querySelectorAll('[data-kind]').forEach(button=>button.addEventListener('click',()=>{
+ document.querySelectorAll('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+ document.querySelectorAll('.asset').forEach(a=>a.hidden=a.dataset.asset!==button.dataset.kind);
+ document.getElementById('power-label').textContent=button.textContent+'功率';sync();
+}));
+document.addEventListener('visibilitychange',sync);window.addEventListener('focus',sync);window.addEventListener('blur',sync);reduced.addEventListener('change',sync);sync();
+</script></html>
