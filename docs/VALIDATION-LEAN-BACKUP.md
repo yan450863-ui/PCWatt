@@ -35,7 +35,7 @@ Debug 和独立目录 Release 构建均成功，零警告、零错误；各 **29
 
 ## 本地交付
 
-工程入口 `启动.cmd` 指向 `artifacts/build-lean-backup/bin/PCWatt.App/release/Launch.cmd`。0.3.2 自包含安装包和 ZIP 位于 `artifacts/releases/0.3.2`；SHA256 在同目录记录。此前版本保留。安装、内置运行时、原生 SQLite、版本与卸载检查通过，真实用户设置和自启动配置保持原样。
+工程入口 `启动.cmd` 指向 `artifacts/build-lean-backup/bin/PCWatt.App/release/Launch.cmd`。0.3.2 自包含安装包和 ZIP 位于 `artifacts/releases/0.3.2`；SHA256 在同目录记录。此前版本保留。已发布 GitHub v0.3.2，四个附件及源码提交已核对，见 VALIDATION-GITHUB-0.3.2.md。安装、内置运行时、原生 SQLite、版本与卸载检查通过，真实用户设置和自启动配置保持原样。
 
 安装包：57264821 字节，SHA256 `625bbef15125bca406ccd6b6210ea813d6def115444fa377ff9d2d16707531bd`。ZIP：80780859 字节，SHA256 `f3b4e7cdafaee753c9dd0b387b70528d0fd5b427f1a0be704c0a4b250acd8efc`。安装验证版本 0.3.2.0，使用内置 .NET 10.0.12 与 SQLite 3.53.3。
 

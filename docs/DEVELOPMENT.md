@@ -21,7 +21,7 @@ dotnet test PCWatt.sln
 
 也可使用 Visual Studio 打开 `PCWatt.sln`。`global.json` 接受 .NET 10 正式版 feature band，当前验证使用 SDK 10.0.401。构建不需要管理员权限；WPF 与渲染测试需要 Windows，Core 和 Infrastructure 自身以 `net10.0` 为目标。
 
-当前本地预览在 `artifacts/releases/0.3.2/`，公开版保留在 `artifacts/releases/0.1.0/`，提供自包含 EXE 安装器和完整 ZIP，包含 .NET 10.0.12；用户直接运行安装后的 PCWatt.App.exe，无需预装 .NET。旧框架依赖预览保留在 artifacts 内；框架依赖构建仍需要 Desktop Runtime。构建产物不纳入源码版本控制，升级前从托盘正常退出旧版。
+当前公开预览版为 0.3.2，本地产物在 `artifacts/releases/0.3.2/`，旧公开版保留在 `artifacts/releases/0.1.0/`，提供自包含 EXE 安装器和完整 ZIP，包含 .NET 10.0.12；用户直接运行安装后的 PCWatt.App.exe，无需预装 .NET。旧框架依赖预览保留在 artifacts 内；框架依赖构建仍需要 Desktop Runtime。构建产物不纳入源码版本控制，升级前从托盘正常退出旧版。
 
 启动入口使用已安装的 .NET 运行时加载 `PCWatt.App.dll`，程序主进程不附带控制台窗口。Windows PowerShell 仅作为短暂的启动辅助，不是常驻后台进程。该方式兼容本工作区生成 exe 继承低完整性标签的环境；直接双击受限 exe 会显示中文指引，尚未写入用户设置或数据库时即停止。
 

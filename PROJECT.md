@@ -1,9 +1,9 @@
 # PC Watt
 
-- 项目版本：0.3.2（本地预览版；公开下载仍为 0.1.0）
+- 项目版本：0.3.2（已公开预览版）
 - 最近实质修改日期：2026-10-28
 - 公开仓库：https://github.com/yan450863-ui/PCWatt
-- 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.1.0
+- 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.3.2
 
 ## 项目简介
 
@@ -54,8 +54,9 @@
 
 - 工程与可运行版本集中放在 `D:\工作间\PCWatt`，沿用原有解决方案结构。
 - 本地工程入口：根目录 `启动.cmd` 调用 artifacts/build-lean-backup/bin/PCWatt.App/release/Launch.cmd，未构建时先执行独立目录的 Release 构建；该工程入口需要 .NET 10 SDK，已有构建运行需要对应 Desktop Runtime。
-- 本地 0.3.2 安装包：artifacts/releases/0.3.2/PCWatt-0.3.2-Setup-win-x64.exe（0.2.0、0.3.0、0.3.1 包保留），另有 ZIP 和 SHA256；尚未上传 GitHub，公开版 0.1.0 保留。
+- 本地 0.3.2 安装包：artifacts/releases/0.3.2/PCWatt-0.3.2-Setup-win-x64.exe（0.2.0、0.3.0、0.3.1 包保留），另有 ZIP、中文说明和 SHA256；已公开到 GitHub v0.3.2，公开版 0.1.0 保留。
 - 已公开 0.1.0 安装包：artifacts/releases/0.1.0/PCWatt-0.1.0-Setup-win-x64.exe，另有完整解压 ZIP、使用说明及 SHA256。安装版/解压版自带 .NET 10.0.12，直接运行 PCWatt.App.exe，无需单独安装运行时。旧预览目录和 ZIP 均保留。
+- 0.3.2 发布源码提交为 5f98fe85a6e3b44a20b1819d57b559e17657ecb6，四个附件的服务端 SHA256 已核对；发行记录见 docs/VALIDATION-GITHUB-0.3.2.md。
 - 本项目根目录已接入公开仓库 main，正常 git 操作在此执行；artifacts/releases/0.1.0/source 是首发时冻结的源码暂存，不作为后续日常开发目录。
 - 安装默认在当前用户 Programs/PCWatt，可选择目录；卸载保留 `%LOCALAPPDATA%\PCWatt` 中的数据、电价和设置。独立版自启动和管理员授权直接使用安装目录主 EXE，不依赖系统 dotnet 或复制出的框架启动器。
 - 默认关闭窗口后释放界面并留在托盘，完全退出使用托盘菜单；自启动可在设置中关闭。
