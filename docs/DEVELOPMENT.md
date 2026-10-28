@@ -4,7 +4,7 @@
 
 **当前已接入真实硬件组件功率与自动整机估算。** CPU/GPU 优先读取设备功率；内存、硬盘、风扇等有瓦数接口时使用读数，否则采用明确标注的通用估算。不会把转速、温度或负载当成瓦数，不把组件之和标为整机实测。原有模拟记录单独保留。
 
-已实现工程骨架、生命周期与设置、人民币电价历史、通知、真实组件采集、自动整机估算、电费优先的部件切换、日/月/年耗电图表（分色堆叠柱与总量折线）、温度/占用率、显示器会话状态和托盘悬浮读数。产品基线见 [PRODUCT-REQUIREMENTS](PRODUCT-REQUIREMENTS.md)，后续安排见 [ROADMAP](ROADMAP.md)，最新验证见 [EXE 发行验证](VALIDATION-EXE-RELEASE.md)。
+已实现工程骨架、生命周期与设置、人民币电价历史、通知、真实组件采集、自动整机估算、电费优先的部件切换、五周期历史耗电波浪图、备份恢复、温度/占用率、显示器会话状态和托盘悬浮读数。产品基线见 [PRODUCT-REQUIREMENTS](PRODUCT-REQUIREMENTS.md)，后续安排见 [ROADMAP](ROADMAP.md)，最新验证见 [轻量优化与备份验证](VALIDATION-LEAN-BACKUP.md)。
 
 项目当前位于 `D:\工作间\PCWatt`。本地工程双击根目录 [启动.cmd](../启动.cmd)，定位 Release 输出，尚未构建时调用 .NET 10 SDK 构建；兼容中文和空格路径。安装版用户使用桌面或开始菜单快捷方式，发行状态见 [PROJECT.md](../PROJECT.md)。
 
@@ -21,7 +21,7 @@ dotnet test PCWatt.sln
 
 也可使用 Visual Studio 打开 `PCWatt.sln`。`global.json` 接受 .NET 10 正式版 feature band，当前验证使用 SDK 10.0.401。构建不需要管理员权限；WPF 与渲染测试需要 Windows，Core 和 Infrastructure 自身以 `net10.0` 为目标。
 
-当前发行在 `artifacts/releases/0.1.0/`，提供自包含 EXE 安装器和完整 ZIP，包含 .NET 10.0.12；用户直接运行安装后的 PCWatt.App.exe，无需预装 .NET。旧框架依赖预览保留在 artifacts 内；框架依赖构建仍需要 Desktop Runtime。构建产物不纳入源码版本控制，升级前从托盘正常退出旧版。
+当前本地预览在 `artifacts/releases/0.3.2/`，公开版保留在 `artifacts/releases/0.1.0/`，提供自包含 EXE 安装器和完整 ZIP，包含 .NET 10.0.12；用户直接运行安装后的 PCWatt.App.exe，无需预装 .NET。旧框架依赖预览保留在 artifacts 内；框架依赖构建仍需要 Desktop Runtime。构建产物不纳入源码版本控制，升级前从托盘正常退出旧版。
 
 启动入口使用已安装的 .NET 运行时加载 `PCWatt.App.dll`，程序主进程不附带控制台窗口。Windows PowerShell 仅作为短暂的启动辅助，不是常驻后台进程。该方式兼容本工作区生成 exe 继承低完整性标签的环境；直接双击受限 exe 会显示中文指引，尚未写入用户设置或数据库时即停止。
 
@@ -78,7 +78,7 @@ dotnet test PCWatt.sln
 
 SQLite 使用参数化 SQL、WAL 和不可变唯一键。当前 schema 5，可从 schema 1/2/3/4 在事务中升级，保留所有旧样本、电价及通知日期，保存传感器目录和整机估算属性。`simulation.db` 沿用旧文件名，其中真实硬件、整机估算和模拟历史按 Source 隔离。损坏文件和未知 schema 会报错并保留，不静默删库重建。
 
-手动备份时先从托盘完全退出，再复制数据库及仍存在的 `-wal`/`-shm` 文件；仅关闭窗口不会停止写入。当前没有一键备份、恢复或清理历史界面。
+设置页提供一键备份和经确认后的恢复。备份用 SQLite BackupDatabase 保存一致快照，包含 WAL 中已提交的数据；归档包含数据库、设置和带 SHA256 的清单。恢复在单实例启动后、采样前执行；自动备份原数据并写原子恢复标记，异常退出后回滚，详见 VALIDATION-LEAN-BACKUP.md。清除历史界面尚未实现。
 
 ## 时间积分与缺失规则
 

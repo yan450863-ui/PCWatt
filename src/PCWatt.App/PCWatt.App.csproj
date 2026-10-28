@@ -22,7 +22,11 @@
     <Content Include="../../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="IncludeAutostartLauncher" AfterTargets="Build">
-    <ItemGroup><LauncherFiles Include="../PCWatt.Launcher/bin/$(Configuration)/net10.0-windows/$(RuntimeIdentifier)/PCWatt.Launcher.*" Exclude="../PCWatt.Launcher/bin/$(Configuration)/net10.0-windows/$(RuntimeIdentifier)/*.pdb" /></ItemGroup>
+    <MSBuild Projects="../PCWatt.Launcher/PCWatt.Launcher.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=net10.0-windows;RuntimeIdentifier=$(RuntimeIdentifier)">
+      <Output TaskParameter="TargetOutputs" ItemName="LauncherTarget" />
+    </MSBuild>
+    <PropertyGroup><LauncherTargetDirectory>@(LauncherTarget->'%(RootDir)%(Directory)')</LauncherTargetDirectory></PropertyGroup>
+    <ItemGroup><LauncherFiles Include="$(LauncherTargetDirectory)PCWatt.Launcher.*" Exclude="$(LauncherTargetDirectory)*.pdb" /></ItemGroup>
     <Copy SourceFiles="@(LauncherFiles)" DestinationFolder="$(OutDir)launcher" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="PublishAutostartLauncher" AfterTargets="Publish">

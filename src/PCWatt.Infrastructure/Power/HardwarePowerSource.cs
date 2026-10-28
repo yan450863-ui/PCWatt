@@ -5,7 +5,7 @@ using PCWatt.Core.Services;
 namespace PCWatt.Infrastructure.Power;
 
 public sealed class HardwarePowerSource(ILibreHardwareMonitorAdapter adapter, Func<WholePcEstimateProfile?>? estimateProfile = null,
-    Func<bool>? automaticEstimate = null) : IMultiPowerSource, IDisposable
+    Func<bool>? automaticEstimate = null, Func<PeripheralPowerProfile?>? peripherals = null) : IMultiPowerSource, IDisposable
 {
     public string Id => "lhm:components";
     public string DisplayName => "硬件功率传感器 · 组件遥测";
@@ -15,7 +15,7 @@ public sealed class HardwarePowerSource(ILibreHardwareMonitorAdapter adapter, Fu
         if (estimateProfile is null && automaticEstimate is null) return ValueTask.FromResult(frame);
         frame = OtherHardwarePowerResolver.Resolve(frame);
         var profile = estimateProfile?.Invoke() ?? (automaticEstimate?.Invoke() == true ? AutomaticWholePcProfile.Create(frame) : null);
-        return ValueTask.FromResult(WholePcPowerEstimator.Append(frame, profile));
+        return ValueTask.FromResult(PeripheralPowerComposer.Append(WholePcPowerEstimator.Append(frame, profile), peripherals?.Invoke()));
     }
     public ValueTask<PowerSample> ReadAsync(CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException("多硬件来源必须使用 ReadFrameAsync，不能把任意组件当作整机样本。");
@@ -60,12 +60,13 @@ public sealed class LibreHardwareMonitorAdapter(IClock clock, Func<IHardwarePowe
                 id, valid && availability == PowerAvailability.Available ? PowerConfidence.Medium : PowerConfidence.Unknown, false, flags));
         }
         return new(timestamp, channels, samples) { Temperatures = TemperatureSelector.Select(_session.Temperatures, timestamp),
-            Utilization = UtilizationSelector.Select(_session.Utilization, timestamp) };
+            Utilization = UtilizationSelector.Select(_session.Utilization, timestamp), Sensors = HardwareSensorSelector.Select(_session.Sensors, timestamp) };
     }
 
     private static string Scope(HardwarePowerReading r)
     {
         var name = r.SensorName;
+        if (r.Kind == PowerComponentKind.PowerSupply) return PowerSupplyPowerSelector.Scope(name) ?? "电源分路（不重复汇总）";
         if (r.Kind == PowerComponentKind.Cpu && name.Contains("Package", StringComparison.OrdinalIgnoreCase)) return "CPU 封装";
         if (r.Kind == PowerComponentKind.Gpu && name.Contains("Board", StringComparison.OrdinalIgnoreCase)) return "GPU 板卡";
         if (r.Kind == PowerComponentKind.Gpu && name.Contains("Package", StringComparison.OrdinalIgnoreCase)) return "GPU 封装";

@@ -22,9 +22,9 @@ public sealed partial class PowerTrend
     public TimeZoneInfo TimeZone { get => (TimeZoneInfo)GetValue(TimeZoneProperty); set => SetValue(TimeZoneProperty, value); }
 
     public static string ContributionName(EnergyPart part) => part switch
-    { EnergyPart.Cpu => "CPU", EnergyPart.Gpu => "显卡", EnergyPart.Memory => "内存", EnergyPart.Storage => "其他", EnergyPart.Other => "其他", _ => "未拆分" };
+    { EnergyPart.Cpu => "CPU", EnergyPart.Gpu => "显卡", EnergyPart.Memory => "其他", EnergyPart.Storage => "其他", EnergyPart.Other => "其他", EnergyPart.Peripheral => "外设", _ => "未拆分" };
     public static string ContributionColor(EnergyPart part) => part switch
-    { EnergyPart.Cpu => "#4F86C6", EnergyPart.Gpu => "#D6A066", EnergyPart.Memory => "#A08DBD", EnergyPart.Storage => "#65ACA3", EnergyPart.Other => "#65ACA3", _ => "#B8BDC3" };
+    { EnergyPart.Cpu => "#4F86C6", EnergyPart.Gpu => "#D6A066", EnergyPart.Memory => "#65ACA3", EnergyPart.Storage => "#65ACA3", EnergyPart.Other => "#65ACA3", EnergyPart.Peripheral => "#A08DBD", _ => "#B8BDC3" };
 
     public static string HistoryTooltip(EnergyBucket bucket, TimeZoneInfo zone)
     {
@@ -32,6 +32,8 @@ public sealed partial class PowerTrend
         var start = TimeZoneInfo.ConvertTime(e.Start, zone);
         var end = TimeZoneInfo.ConvertTime(e.End, zone);
         var range = start.Date == end.Date ? $"{start:MM-dd HH:mm} — {end:HH:mm}" : $"{start:MM-dd HH:mm} — {end:MM-dd HH:mm}";
+        if (zone.IsAmbiguousTime(start.DateTime) || zone.IsAmbiguousTime(end.DateTime))
+            range = $"{start:MM-dd HH:mm zzz} — {end:HH:mm zzz}";
         var value = e.CoveredDuration > TimeSpan.Zero ? $"耗电 {EnergyDisplay.Format(e.KilowattHours)} 度" : "耗电未知";
         var status = e.ContainsSimulatedData ? " · 模拟数据" : e.IsEstimated ? " · 估算" : "";
         var parts = DisplayContributions(bucket);
@@ -69,7 +71,7 @@ public sealed partial class PowerTrend
         var maximum = step * 4;
         var muted = Brush("#939D99");
         Label(dc, axisScale == 1 ? "度（kWh）" : "瓦时（Wh）", new(0, 0), muted, 9);
-        var legend = buckets.SelectMany(DisplayContributions).Select(p => p.Part).Distinct().Order().ToArray();
+        var legend = buckets.SelectMany(DisplayContributions).Select(p => p.Part).Distinct().OrderBy(ContributionOrder).ToArray();
         var legendX = plot.Left + 18;
         foreach (var part in legend)
         {
@@ -90,49 +92,37 @@ public sealed partial class PowerTrend
         var axisEnd = History is null ? axisStart.AddDays(1) : AxisEnd(History, TimeZone);
         double X(DateTimeOffset t) => plot.Left + (t - axisStart).TotalSeconds / (axisEnd - axisStart).TotalSeconds * plot.Width;
         double Center(EnergyBucket b) => (X(b.Energy.Start) + X(b.Energy.End)) / 2;
-        for (var i = 0; i < buckets.Count; i++)
-        {
-            var bucket = buckets[i]; var energy = bucket.Energy;
-            var center = Center(bucket);
-            var barWidth = Math.Max(1, Math.Min(38, (X(energy.End) - X(energy.Start)) * 0.58));
-            if (energy.CoveredDuration > TimeSpan.Zero)
-            {
-                var height = Math.Max(1.8, (double)energy.KilowattHours / maximum * plot.Height);
-                if (bucket.Contributions.Count > 0 && energy.KilowattHours > 0)
-                {
-                    dc.PushClip(new RectangleGeometry(new Rect(center - barWidth / 2, plot.Bottom - height, barWidth, height), 3, 3));
-                    var bottom = plot.Bottom;
-                    foreach (var part in DisplayContributions(bucket))
-                    {
-                        if (part.KilowattHours <= 0) continue;
-                        var partHeight = (double)part.KilowattHours / maximum * plot.Height;
-                        var color = (Color)ColorConverter.ConvertFromString(ContributionColor(part.Part));
-                        dc.DrawRectangle(new SolidColorBrush(color), null,
-                            new Rect(center - barWidth / 2, bottom - partHeight, barWidth, partHeight));
-                        bottom -= partHeight;
-                    }
-                    dc.Pop();
-                }
-                else dc.DrawRoundedRectangle(Brush(HistoryColor), null,
-                    new Rect(center - barWidth / 2, plot.Bottom - height, barWidth, height), 3, 3);
-            }
-        }
-        var lastObserved = buckets.LastOrDefault(b => b.Energy.CoveredDuration > TimeSpan.Zero);
-        var trendPen = new Pen(Brush("#287F77"), 1.6) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+        var lineColor = History?.Source is null ? "#287F77" : HistoryColor;
+        var trendPen = new Pen(Brush(lineColor), 2.1) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         foreach (var run in HistoryLineRuns(buckets))
         {
-            Point? previous = null;
-            foreach (var index in run)
+            var points = run.Select(i => new Point(Center(buckets[i]), plot.Bottom - (double)buckets[i].Energy.KilowattHours / maximum * plot.Height)).ToArray();
+            if (History?.Source is null && legend.Length > 0)
             {
-                var point = new Point(Center(buckets[index]), plot.Bottom - (double)buckets[index].Energy.KilowattHours / maximum * plot.Height);
-                if (previous is { } last)
+                var cumulative = new double[run.Count];
+                foreach (var part in legend)
                 {
-                    dc.DrawLine(trendPen, last, point);
+                    var lower = run.Select((i, j) => new Point(Center(buckets[i]), plot.Bottom - cumulative[j] / maximum * plot.Height)).ToArray();
+                    for (var j = 0; j < run.Count; j++) cumulative[j] += (double)DisplayContributions(buckets[run[j]])
+                        .Where(p => p.Part == part).Sum(p => p.KilowattHours);
+                    var upper = run.Select((i, j) => new Point(Center(buckets[i]), plot.Bottom - cumulative[j] / maximum * plot.Height)).ToArray();
+                    var color = (Color)ColorConverter.ConvertFromString(ContributionColor(part));
+                    dc.DrawGeometry(new LinearGradientBrush(Color.FromArgb(165, color.R, color.G, color.B),
+                        Color.FromArgb(65, color.R, color.G, color.B), 90), null, WaveBand(upper, lower));
                 }
-                if (ReferenceEquals(buckets[index], lastObserved))
-                    dc.DrawEllipse(Brush("#287F77"), new Pen(Brush("#FFFFFF"), 1.2), point, 3, 3);
-                previous = point;
             }
+            else
+            {
+                var color = (Color)ColorConverter.ConvertFromString(lineColor);
+                dc.DrawGeometry(new LinearGradientBrush(Color.FromArgb(95, color.R, color.G, color.B),
+                    Color.FromArgb(12, color.R, color.G, color.B), 90), null,
+                    WaveBand(points, points.Select(p => new Point(p.X, plot.Bottom)).ToArray()));
+            }
+            dc.DrawGeometry(null, trendPen, WaveLine(points));
+            var stride = Math.Max(1, (int)Math.Ceiling(buckets.Count / 24d));
+            for (var j = 0; j < points.Length; j++)
+                if (run[j] % stride == 0 || j == points.Length - 1)
+                    dc.DrawEllipse(Brush(lineColor), new Pen(Brush("#FFFFFF"), 1.3), points[j], 2.9, 2.9);
         }
         if (History is { } history)
             foreach (var tick in AxisTicks(history, TimeZone))

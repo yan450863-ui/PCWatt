@@ -9,13 +9,13 @@ namespace PCWatt.Tests;
 public sealed class ClearChartTests
 {
     [TestMethod]
-    public void OtherLivePowerIncludesDiskAndLossAndNeverDuplicatesCpuGpuOrMemory()
+    public void OtherLivePowerIncludesMemoryDiskAndLossWithoutDuplicatingCpuGpu()
     {
         var frame = WholePcBreakdownTests.Frame(TestData.Origin);
         var whole = frame.Samples.Last();
         var parts = new WholePcEnergyBreakdown(TimeSpan.FromSeconds(180), frame.Channels, [frame.Samples]);
         var other = parts.OtherPower(whole);
-        TestData.Near(whole.Watts!.Value - 45 - 80 - 8, other.Watts!.Value);
+        TestData.Near(whole.Watts!.Value - 45 - 80, other.Watts!.Value);
         Assert.AreEqual(OtherPowerView.SourceId, other.Source); Assert.IsTrue(other.IsEstimated);
         var bad = parts.OtherPower(whole with { Watts = whole.Watts + 1 });
         Assert.IsFalse(bad.HasUsablePower); Assert.IsNull(bad.Watts);
@@ -37,7 +37,7 @@ public sealed class ClearChartTests
         Assert.IsFalse((await repo.ReadChannelsAsync()).Any(c => c.Id == OtherPowerView.SourceId));
         Assert.IsEmpty(await repo.ReadWindowAsync(OtherPowerView.SourceId, whole.Summary.Start, b.Timestamp));
         var bucket = whole.Buckets.Single(p => p.Energy.CoveredDuration > TimeSpan.Zero);
-        Assert.HasCount(4, PowerTrend.DisplayContributions(bucket));
+        Assert.HasCount(3, PowerTrend.DisplayContributions(bucket));
         TestData.Near(bucket.Energy.KilowattHours, PowerTrend.DisplayContributions(bucket).Sum(p => p.KilowattHours));
     }
 
@@ -72,7 +72,7 @@ public sealed class ClearChartTests
     [TestMethod]
     public void AllCategoriesHaveIdenticalCalendarAxisDespiteDifferentCutoffsAndNoFutureRecords()
     {
-        foreach (var period in Enum.GetValues<EnergyPeriod>())
+        foreach (var period in new[] { EnergyPeriod.Day, EnergyPeriod.Week, EnergyPeriod.Month, EnergyPeriod.Year })
         {
             var a = new EnergyHistoryCalculator(TimeSpan.FromSeconds(180)).Calculate(period, "cpu", [Array.Empty<PowerSample>()], TestData.Origin, TimeZoneInfo.Utc);
             var b = new EnergyHistoryCalculator(TimeSpan.FromSeconds(180)).Calculate(period, null, [], TestData.Origin.AddSeconds(30), TimeZoneInfo.Utc);

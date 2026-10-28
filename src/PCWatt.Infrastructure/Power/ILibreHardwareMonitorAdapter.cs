@@ -25,4 +25,9 @@ public interface IHardwarePowerSession : IDisposable
     IReadOnlyList<HardwarePowerReading> Read(CancellationToken cancellationToken);
     IReadOnlyList<HardwareTemperatureReading> Temperatures => [];
     IReadOnlyList<HardwareUtilizationReading> Utilization => [];
+    IReadOnlyList<HardwareSensorReading> Sensors => [];
 }
+
+public sealed record HardwareSensorReading(string HardwareId, string HardwareName, PowerComponentKind Kind,
+    string SensorId, string Name, HardwareSensorMetric Metric, float? Value,
+    PowerAvailability Availability = PowerAvailability.Available, string? Detail = null);

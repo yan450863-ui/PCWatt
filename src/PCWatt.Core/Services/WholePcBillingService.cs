@@ -8,6 +8,33 @@ public sealed class WholePcBillingService(IEnergyRepository repository, IPowerCh
     Func<IReadOnlyList<PowerChannel>> liveChannels, ITariffRepository tariffs, IClock clock,
     TimeZoneInfo zone, Func<TimeSpan> maximumGap) : IWholePcBillingService
 {
+    private DailyCostDifference? _comparison;
+    private DateTimeOffset _comparisonReadAt = DateTimeOffset.MinValue;
+    private IReadOnlyList<TariffVersion>? _comparisonTariffs;
+    private TimeSpan _comparisonGap;
+    public Task<DailyCostDifference?> GetComparisonAsync(CancellationToken cancellationToken = default) => Task.Run(async () =>
+    {
+        var now = clock.UtcNow;
+        var versions = await tariffs.ReadAsync(cancellationToken);
+        var gap = maximumGap();
+        if (now >= _comparisonReadAt && now - _comparisonReadAt < TimeSpan.FromSeconds(30) &&
+            LocalTimeRules.DateAt(now, zone) == LocalTimeRules.DateAt(_comparisonReadAt, zone) &&
+            _comparisonGap == gap && _comparisonTariffs is not null && versions.SequenceEqual(_comparisonTariffs)) return _comparison;
+        var yesterday = LocalTimeRules.DateAt(now, zone).AddDays(-1);
+        var result = DailyCostComparison.Calculate(await ReadAsync(LocalTimeRules.DayStartUtc(yesterday, zone), now, cancellationToken),
+            versions, now, zone, gap, cancellationToken);
+        _comparison = result; _comparisonReadAt = now; _comparisonTariffs = versions; _comparisonGap = gap;
+        return result;
+    }, cancellationToken);
+    public async Task<DailyEnergySnapshot> GetRangeAsync(StatisticsRange range, CancellationToken cancellationToken = default)
+    {
+        range.Validate();
+        if (range.ObservedThrough > clock.UtcNow) throw new ArgumentException("观察时间不能晚于当前时间。", nameof(range));
+        return await Task.Run(async () => new WholePcBillingCalculator(maximumGap()).Calculate(
+            await ReadAsync(range.Start, range.End, cancellationToken), await tariffs.ReadAsync(cancellationToken),
+            range.Start, range.End, zone, range.ObservedThrough), cancellationToken);
+    }
+
     public async Task<WholePcBillingOverview> GetOverviewAsync(CancellationToken cancellationToken = default)
     {
         var now = clock.UtcNow;

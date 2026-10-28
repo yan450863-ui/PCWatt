@@ -11,3 +11,5 @@ artifacts/
 *.db-wal
 *.log
 appsettings.local.json
+*.pcwatt
+__pycache__/

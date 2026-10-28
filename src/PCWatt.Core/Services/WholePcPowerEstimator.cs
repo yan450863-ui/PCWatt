@@ -7,6 +7,7 @@ public static class WholePcPowerEstimator
     public const string UnknownSourceId = "pc:whole:unconfigured";
     public static PowerFrame Append(PowerFrame frame, WholePcEstimateProfile? profile)
     {
+        if (PowerSupplyPowerSelector.TryAppend(frame) is { } supplyFrame) return supplyFrame;
         profile?.Validate();
         var id = profile?.SourceId ?? UnknownSourceId;
         decimal? watts = null;

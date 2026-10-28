@@ -36,7 +36,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         IReadOnlyList<string>? visibleSources = null, Func<string?, string[]?, Task>? saveChannels = null,
         bool showWholePc = false, Func<bool, Task>? saveViewMode = null,
         IWholePcBillingService? billing = null, ITemperatureProvider? temperatures = null, IUtilizationProvider? utilization = null,
-        IEnergyHistoryService? history = null, IDisplayStateProvider? display = null)
+        IEnergyHistoryService? history = null, IDisplayStateProvider? display = null, ISensorTelemetryProvider? sensors = null)
     {
         _dashboard = dashboard;
         _costCalculator = costCalculator;
@@ -53,6 +53,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         _utilization = utilization;
         _historyService = history;
         _display = display;
+        _sensors = sensors;
         _hardwareSource = (dashboard as IChannelDashboardService)?.SelectedSourceId;
         if (_hardwareSource?.StartsWith("mock:", StringComparison.Ordinal) == true || _hardwareSource?.StartsWith("pc:whole:", StringComparison.Ordinal) == true) _hardwareSource = null;
         _visibleSources = visibleSources?.ToHashSet(StringComparer.Ordinal);
@@ -78,6 +79,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public void SetForegroundActive(bool active)
     {
         _foregroundActive = active;
+        if (!active) IsSensorsOpen = false;
         PropertyChanged?.Invoke(this, new(nameof(RenderMotionEnabled)));
         PropertyChanged?.Invoke(this, new(nameof(DecorativeMotionEnabled)));
     }
@@ -86,7 +88,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         _presentationActive = active;
         if (!active)
         {
-            _snapshot = null; _billingSnapshot = null; _yearSnapshot = null;
+            IsSensorsOpen = false;
+            _snapshot = null; _billingSnapshot = null; _yearSnapshot = null; _rangeSnapshot = null; _comparison = null;
             HistoryData = null; TrendSamples = []; ChartSeries = [];
             foreach (var name in new[] { nameof(HistoryData), nameof(TrendSamples), nameof(ChartSeries) })
                 PropertyChanged?.Invoke(this, new(name));
@@ -103,7 +106,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             _ = RefreshAsync(false, CancellationToken.None);
         }
         foreach (var name in new[] { nameof(ClockText), nameof(DateLabel), nameof(CurrentPower), nameof(PowerWatts), nameof(EstimateText), nameof(CpuTemperature), nameof(GpuTemperature), nameof(CpuTemperatureDetail), nameof(GpuTemperatureDetail),
-            nameof(CpuUtilization), nameof(GpuUtilization), nameof(MemoryUtilization), nameof(CpuUtilizationValue), nameof(GpuUtilizationValue), nameof(MemoryUtilizationValue), nameof(UtilizationDetails) })
+            nameof(CpuUtilization), nameof(GpuUtilization), nameof(MemoryUtilization), nameof(CpuUtilizationValue), nameof(GpuUtilizationValue), nameof(MemoryUtilizationValue), nameof(UtilizationDetails), nameof(SensorRows), nameof(SensorStatus) })
             PropertyChanged?.Invoke(this, new(name));
     }
     public void ReportError(string message) { ErrorMessage = message; NotifyAll(); }
@@ -115,7 +118,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public string ClockText => TimeZoneInfo.ConvertTime(_clock.UtcNow, _zone).ToString("HH:mm:ss");
     public string SamplingCadence { get; private set; } = "每 30 秒记录一次";
     public SettingsViewModel? Settings { get; set; }
-    public ICommand ShowOverviewCommand => new RelayCommand(() => { IsOverview = true; NotifyAll(); });
+    public ICommand ShowOverviewCommand => new RelayCommand(() => { IsOverview = true; NotifyAll();
+        _ = RefreshAsync(false, CancellationToken.None); });
     public ICommand ShowSettingsCommand => new RelayCommand(() => { IsOverview = false; Settings?.Notify();
         if (Settings is { } settings) _ = settings.LoadDetailsCommand.ExecuteAsync(); NotifyAll(); });
     public string RecordingHint => IsSampling ? "记录正在后台进行" : "记录已暂停，未记录时间不补算";
@@ -123,7 +127,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public bool IsWholePcView => _wholePcView;
     public bool IsHardwareView => !_wholePcView;
     public bool IsHardwareSelectorVisible => HasHardwareChannels && IsHardwareView;
-    public string PowerHeading => SelectedCategoryLabel + "功率";
+    public string PowerHeading => IsWholePcView ? "总功耗" : SelectedCategoryLabel + "功率";
     public string ChartHeading => IsHistoryMode ? SelectedCategoryLabel + BillingPeriodLabel + "耗电" : SelectedCategoryLabel + "功耗趋势";
     public string CurveLabel => IsWholePcView ? "整机估算 · W" : "硬件曲线 · W";
     public bool NeedsCpuPermission => (_dashboard as IChannelDashboardService)?.Channels.Any(c =>
@@ -262,6 +266,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             _refreshAgain = false;
             var generation = _viewGeneration;
             var period = _period;
+            var range = UsesCustomRange ? SelectedRange(_clock.UtcNow) : null;
             if (_dashboard is IChannelDashboardService channels)
             {
                 await channels.RefreshChannelsAsync(cancellationToken);
@@ -297,11 +302,17 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             var billingSnapshot = _billing is null ? null : await _billing.GetOverviewAsync(cancellationToken);
             var yearSnapshot = _billing is not null && period == BillingPeriod.Year
                 ? await _billing.GetYearAsync(cancellationToken) : _yearSnapshot;
+            var rangeSnapshot = _billing is not null && range is not null
+                ? await _billing.GetRangeAsync(range, cancellationToken) : null;
+            var comparison = _billing is not null && period == BillingPeriod.Day && _historyDate is null && SelectedCategoryKey != "peripherals"
+                ? await _billing.GetComparisonAsync(cancellationToken) : null;
             if (selected != SelectedSource || generation != _viewGeneration) { _refreshAgain = true; continue; }
             var historyEnd = IsWholePcView ? (period switch { BillingPeriod.Month => billingSnapshot?.Month,
                 BillingPeriod.Year => yearSnapshot, _ => billingSnapshot?.Today })?.Energy.End ?? _clock.UtcNow : _clock.UtcNow;
-            var history = _historyService is null ? null : await _historyService.GetAsync(ToEnergyPeriod(period),
-                IsWholePcView ? null : selected ?? "hardware:waiting", historyEnd, cancellationToken);
+            var historySource = IsWholePcView ? null : selected ?? "hardware:waiting";
+            var history = _historyService is null ? null : range is not null
+                ? await _historyService.GetAsync(range, historySource, cancellationToken)
+                : await _historyService.GetAsync(ToEnergyPeriod(period), historySource, historyEnd, cancellationToken);
             if (selected != SelectedSource) { _refreshAgain = true; continue; }
             IReadOnlyList<PowerChartSeries>? chartSeries = null;
             if (_dashboard is IChannelDashboardService multi)
@@ -315,6 +326,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             _snapshot = snapshot;
             _billingSnapshot = billingSnapshot;
             _yearSnapshot = yearSnapshot;
+            _rangeSnapshot = rangeSnapshot;
+            _comparison = comparison;
             HistoryData = history;
             TrendSamples = trend;
             ChartSeries = chartSeries;

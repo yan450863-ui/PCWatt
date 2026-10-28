@@ -45,6 +45,7 @@ public partial class App : Application
             WindowsLaunchEnvironment.Validate(integrity,
                 WindowsLaunchEnvironment.FindLaunchFile(AppContext.BaseDirectory));
             await AdministratorLaunch.WaitForHandoffAsync(e.Args, integrity);
+            await ApplicationRestart.WaitAsync(e.Args);
             try { _instance = new SingleInstanceCoordinator(); }
             catch (UnauthorizedAccessException)
             {
@@ -62,6 +63,9 @@ public partial class App : Application
             _instance.Listen(() => Dispatcher.BeginInvoke(() => { _openRequested = true; OpenMainWindow(); }));
             var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PCWatt");
             var local = Path.Combine(directory, "appsettings.local.json");
+            var databasePath = Path.Combine(directory, "simulation.db");
+            var backups = new LocalDataBackupService(databasePath, Path.Combine(directory, "settings.json"));
+            var restoreStatus = await backups.ApplyPendingAsync();
             var store = new UserSettingsStore(Path.Combine(directory, "settings.json"));
             var settings = await store.LoadAsync(File.Exists(local) ? local : Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
             await store.SaveAsync(settings);
@@ -75,7 +79,6 @@ public partial class App : Application
                 }
                 catch (Exception exception) { StartupDiagnostics.Write("完整硬件启动未完成，继续普通权限记录：" + exception); }
             }
-            var databasePath = Path.Combine(directory, "simulation.db");
             var repository = new SqliteEnergyRepository(databasePath);
             await repository.InitializeAsync();
             var clock = new SystemClock();
@@ -88,8 +91,8 @@ public partial class App : Application
                 await tariffs.ImportLegacyAsync(legacy, LocalTimeRules.DateAt(first?.Timestamp ?? clock.UtcNow, TimeZoneInfo.Local), clock.UtcNow);
             }
             _sampling = new SamplingCoordinator(() => new HardwarePowerSource(new LibreHardwareMonitorAdapter(clock),
-                () => _preferences is null ? settings.WholePcEstimate : _preferences.Current.WholePcEstimate,
-                () => _preferences?.Current.AutomaticWholePcEstimate ?? settings.AutomaticWholePcEstimate), repository, settings.SamplingIntervalSeconds,
+                () => null, () => true,
+                () => (_preferences?.Current ?? settings) is { PeripheralsEnabled: true } current ? current.Peripherals : null), repository, settings.SamplingIntervalSeconds,
                 maximumIntegrationInterval: () => _preferences?.Current.MaximumIntegrationGapSeconds ?? settings.MaximumIntegrationGapSeconds,
                 discoverWhenPaused: true);
             if (settings.RecordingPaused) await _sampling.SetPausedAsync(true);
@@ -99,6 +102,15 @@ public partial class App : Application
             try { new AutostartLauncherInstaller(AppContext.BaseDirectory, directory).Install(); autostart.SetEnabled(settings.AutoStartEnabled); StartupDiagnostics.Write("autostart registration ready: " + autostart.CurrentCommand); }
             catch (Exception exception) { startupWarning = $"自启动配置未生效：{exception.Message}"; StartupDiagnostics.Write(exception.ToString()); }
             _preferences = new ApplicationPreferences(settings, store, autostart, _sampling);
+            var knownPrices = await tariffs.ReadAsync();
+            var dataActions = new DataManagementActions(backups, _sampling.FlushAsync, async () =>
+            {
+                await _preferences.WaitForIdleAsync();
+                await _sampling.FlushAsync();
+                ApplicationRestart.Start();
+                await ExitAsync();
+                if (!_exiting) throw new InvalidOperationException("退出前保存未完成，请重试退出。");
+            });
             var buffered = new BufferedEnergyRepository(repository, _sampling);
             // Only monitoring, settings storage and tray objects exist until the user opens a window.
             var notificationBilling = new WholePcBillingService(buffered, repository, () => _sampling.Channels, tariffs, clock,
@@ -106,8 +118,10 @@ public partial class App : Application
             _windowSession = new OnDemandWindowSession(() =>
             {
                 var current = _preferences.Current;
+                var hasPrice = knownPrices.Any(v => v.Tariff.CurrencyCode == "CNY" &&
+                    v.EffectiveFrom <= LocalTimeRules.DateAt(clock.UtcNow, TimeZoneInfo.Local));
                 var energyHistory = new EnergyHistoryService(buffered, repository, () => _sampling.Channels, clock, TimeZoneInfo.Local,
-                    () => TimeSpan.FromSeconds(_preferences.Current.MaximumIntegrationGapSeconds), () => _preferences.Current.WholePcEstimate);
+                    () => TimeSpan.FromSeconds(_preferences.Current.MaximumIntegrationGapSeconds), () => _preferences.Current.WholePcEstimate, tariffs);
                 var dashboard = new ChannelDashboardService(buffered, repository, _sampling, tariffs, clock, TimeZoneInfo.Local,
                     () => TimeSpan.FromSeconds(_preferences.Current.MaximumIntegrationGapSeconds), MockPowerSource.SourceId,
                     () => _sampling.Channels.FirstOrDefault(c => c.Kind == PCWatt.Core.Models.PowerComponentKind.WholePc &&
@@ -121,23 +135,30 @@ public partial class App : Application
                     current.VisiblePowerSources, (selected, visible) => _preferences.UpdateAsync(current => current with
                         { SelectedPowerSource = selected, VisiblePowerSources = visible }), current.ShowWholePc,
                     mode => _preferences.UpdateAsync(current => current with { ShowWholePc = mode }), billing, _sampling, _sampling,
-                    energyHistory, _display);
+                    energyHistory, _display, _sampling);
                 var history = new TariffHistoryService(tariffs, clock, TimeZoneInfo.Local);
                 model.Settings = new SettingsViewModel(() => _preferences.Current, _preferences.UpdateAsync,
                     () => tariffs.ReadAsync(), (date, tariff) => history.AddAsync(date, tariff),
                     () => billing.GetDateAsync(LocalTimeRules.DateAt(clock.UtcNow, TimeZoneInfo.Local).AddDays(-1)),
-                    () => model.RefreshAsync(false, CancellationToken.None), () => dashboard.Channels,
+                    async () =>
+                    {
+                        knownPrices = await tariffs.ReadAsync();
+                        await model.RefreshAsync(false, CancellationToken.None);
+                    }, () => dashboard.Channels,
                     async () =>
                     {
                         if (WindowsLaunchEnvironment.GetIntegrityLevel() >= 0x3000) return;
                         var elevationLauncher = new AutostartLauncherInstaller(AppContext.BaseDirectory, directory).Install();
                         if (AdministratorLaunch.Request(elevationLauncher, false)) await ExitAsync();
-                    }, integrity >= 0x3000);
+                    }, integrity >= 0x3000, dataActions.BackupAsync, dataActions.RestoreAsync);
                 _model = model;
                 if (_notificationStatus is not null) model.Settings.SetNotificationStatus(_notificationStatus);
                 if (_lastUiError is not null) model.ReportError(_lastUiError);
+                if (restoreStatus is not null) model.Settings.SetNotificationStatus(restoreStatus);
+                if (!hasPrice) model.ShowSettingsCommand.Execute(null);
                 var window = new MainWindow(model, current.SamplingIntervalSeconds, current.MaximumIntegrationGapSeconds,
-                    _sampling, () => _tray is not null && _preferences.Current.CloseToTray, ExitAsync, ReleaseMainWindow) { Icon = BrandIcon.Image() };
+                    _sampling, () => _tray is not null && _preferences.Current.CloseToTray, ExitAsync, ReleaseMainWindow,
+                    !hasPrice) { Icon = BrandIcon.Image() };
                 window.ApplyPreferences(current.MotionEnabled, current.SamplingIntervalSeconds, current.MaximumIntegrationGapSeconds);
                 window.Closed += (_, _) =>
                 {

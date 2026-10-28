@@ -1,6 +1,6 @@
 namespace PCWatt.Core.Models;
 
-public enum PowerComponentKind { Cpu, Gpu, Memory, Other, Simulated, WholePc, Fan, Storage, Motherboard }
+public enum PowerComponentKind { Cpu, Gpu, Memory, Other, Simulated, WholePc, Fan, Storage, Motherboard, Peripheral, HostPc, PowerSupply }
 public enum PowerAvailability { Available, Unsupported, PermissionDenied, ReadFailed, Disconnected }
 
 /// <summary>One independent telemetry stream. Channels can overlap and must never be summed implicitly.</summary>
@@ -19,6 +19,7 @@ public sealed record PowerFrame(DateTimeOffset Timestamp, IReadOnlyList<PowerCha
     // Live telemetry only: temperature is never persisted as watts or integrated into energy.
     public IReadOnlyList<TemperatureSample> Temperatures { get; init; } = [];
     public IReadOnlyList<UtilizationSample> Utilization { get; init; } = [];
+    public IReadOnlyList<HardwareSensorSample> Sensors { get; init; } = [];
 }
 
 public static class RecordingModes

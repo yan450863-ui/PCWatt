@@ -129,7 +129,7 @@ public sealed class WholePcAndCpuTests
     }
 
     [TestMethod]
-    public async Task WholePcSettingsRoundTripAndInvalidFormCannotSave()
+    public async Task LegacyWholePcHistoryProfileSurvivesSettingsRoundTrip()
     {
         using var scope = new TemporaryRepository(); await scope.Repository.InitializeAsync();
         var path = Path.Combine(Path.GetDirectoryName(scope.DatabasePath)!, "settings.json");
@@ -137,15 +137,11 @@ public sealed class WholePcAndCpuTests
         var restored = await store.LoadAsync("unused.json");
         Assert.AreEqual(Profile.SourceId, restored.WholePcEstimate!.SourceId);
         CollectionAssert.AreEqual(Profile.GpuSourceIds, restored.WholePcEstimate.GpuSourceIds);
-        var saves = 0; var settings = new AppSettings();
-        var model = new SettingsViewModel(() => settings, update => { saves++; settings = update(settings); return Task.CompletedTask; }, powerChannels: () => Frame().Channels)
-            { OtherPowerInput = "30", EfficiencyInput = "90", EstimateConfirmed = false, EstimateCpuSource = "cpu" };
-        await model.SaveEstimateCommand.ExecuteAsync(); Assert.AreEqual(0, saves);
-        model.EstimateConfirmed = true; model.EfficiencyInput = "0";
-        await model.SaveEstimateCommand.ExecuteAsync(); Assert.AreEqual(0, saves);
-        model.EfficiencyInput = "90";
-        await model.SaveEstimateCommand.ExecuteAsync(); Assert.AreEqual(1, saves);
-        Assert.IsTrue(settings.ShowWholePc); Assert.AreEqual(0.9m, settings.WholePcEstimate!.PowerSupplyEfficiency);
+        var saves = 0;
+        var model = new SettingsViewModel(() => restored, _ => { saves++; return Task.CompletedTask; });
+        await model.LoadDetailsCommand.ExecuteAsync();
+        Assert.AreEqual(0, saves, "打开简化设置不应覆盖用于历史核对的旧方案。");
+        Assert.AreEqual(Profile.SourceId, restored.WholePcEstimate.SourceId);
     }
 
     private static HardwarePowerReading Cpu(string sensor, float? watts) => new("cpu1", "CPU test", PowerComponentKind.Cpu, sensor, sensor, watts, PowerAvailability.Available);

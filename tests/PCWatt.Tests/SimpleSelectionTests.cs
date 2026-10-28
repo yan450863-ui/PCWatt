@@ -13,7 +13,7 @@ public sealed class SimpleSelectionTests
     public async Task CategoriesShowOnlyMajorComponentsAndHideFansRawDomainsAndSimulation()
     {
         var model = Create(); await model.RefreshAsync(false, CancellationToken.None);
-        CollectionAssert.AreEqual(new[] { "整机", "CPU", "显卡", "内存", "其他" }, model.PowerCategories.Select(c => c.Name).ToArray());
+        CollectionAssert.AreEqual(new[] { "整机", "CPU", "显卡", "外设", "其他" }, model.PowerCategories.Select(c => c.Name).ToArray());
         await model.SelectCategoryCommand.ExecuteAsync("gpu");
         Assert.HasCount(2, model.DeviceOptions); Assert.IsFalse(model.DeviceOptions.Any(c => c.Id == "igpu-soc"));
         Assert.AreEqual("gpu", model.SelectedSource); Assert.AreEqual("独立显卡", model.DeviceOptions[0].Name);
@@ -25,7 +25,7 @@ public sealed class SimpleSelectionTests
     public async Task EachCategorySwitchesPowerStatisticsAndChartTogether()
     {
         var model = Create(); await model.RefreshAsync(false, CancellationToken.None);
-        foreach (var key in new[] { "whole", "cpu", "gpu", "memory", "other" })
+        foreach (var key in new[] { "whole", "cpu", "gpu", "peripherals", "other" })
         {
             await model.SelectCategoryCommand.ExecuteAsync(key);
             Assert.AreEqual(key, model.SelectedCategoryKey);
@@ -54,10 +54,10 @@ public sealed class SimpleSelectionTests
     public async Task OneDeviceHasNoExtraSelectorAndEstimatesRemainVisible()
     {
         var model = Create(); await model.RefreshAsync(false, CancellationToken.None);
-        await model.SelectCategoryCommand.ExecuteAsync("memory");
+        await model.SelectCategoryCommand.ExecuteAsync("peripherals");
         Assert.IsFalse(model.HasDeviceChoices); Assert.AreEqual("估算", model.CompactDataBadge);
         Assert.Contains("估算", model.CompactPowerHint);
-        Assert.AreEqual(8m, model.PowerWatts);
+        Assert.AreEqual(40m, model.PowerWatts);
     }
 
     [TestMethod]
@@ -88,7 +88,7 @@ public sealed class SimpleSelectionTests
     internal sealed class SelectionDashboard : IChannelDashboardService
     {
         private readonly PowerFrame _frame;
-        public SelectionDashboard(bool cpuAvailable = true)
+        public SelectionDashboard(bool cpuAvailable = true, bool includeExternal = false)
         {
             PowerChannel C(string id, string name, PowerComponentKind kind, bool primary = true) => new(id, name, name, kind, name, PowerAvailability.Available, IsPrimary: primary);
             var raw = new PowerFrame(TestData.Origin,
@@ -101,9 +101,10 @@ public sealed class SimpleSelectionTests
                  TestData.Sample(0, null, "fan1"), TestData.Sample(0, null, "fan2"), TestData.Sample(0, null, "disk1"), TestData.Sample(0, null, "disk2")]);
             var resolved = OtherHardwarePowerResolver.Resolve(raw);
             _frame = WholePcPowerEstimator.Append(resolved, AutomaticWholePcProfile.Create(resolved));
+            if (includeExternal) _frame = PeripheralPowerComposer.Append(_frame, new(Guid.Parse("bdfc3aba-f053-471d-a768-46b678fc341e"), 30, 10));
             var parts = new WholePcEnergyBreakdown(TimeSpan.FromSeconds(90), _frame.Channels, [_frame.Samples]);
-            _frame = _frame with { Channels = _frame.Channels.Append(OtherPowerView.Channel(PowerAvailability.Available)).ToArray(),
-                Samples = _frame.Samples.Append(parts.OtherPower(_frame.Samples.Last())).ToArray() };
+            _frame = _frame with { Channels = _frame.Channels.Append(OtherPowerView.Channel(PowerAvailability.Available)).Append(PeripheralPowerComposer.ViewChannel).ToArray(),
+                Samples = _frame.Samples.Append(parts.OtherPower(_frame.Samples.Last())).Append(TestData.Sample(0, 40, PeripheralPowerComposer.ViewSourceId) with { IsEstimated = true }).ToArray() };
         }
         public string? SelectedSourceId { get; set; } = "gpu";
         public string? WholePcSourceId => _frame.Channels.Single(c => c.Kind == PowerComponentKind.WholePc).Id;

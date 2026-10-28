@@ -5,5 +5,7 @@ public enum BillingPeriod
 {
     Day,
     Month,
-    Year
+    Year,
+    Hour,
+    Week
 }

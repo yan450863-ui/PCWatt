@@ -29,6 +29,7 @@ public sealed class ChannelDashboardService(IEnergyRepository repository, IPower
             channels.Add(new(historicalMockSource, "模拟历史", "历史演示数据", PowerComponentKind.Simulated,
                 "模拟功率", PowerAvailability.Disconnected, "仅保留原有模拟记录，真实采集不会写入此来源。"));
         if (history is not null) channels.Add(OtherPowerView.Channel(PowerAvailability.Available));
+        if (history is not null) channels.Add(PeripheralPowerComposer.ViewChannel);
         Channels = channels.OrderBy(c => c.IsSimulated).ThenBy(c => c.Kind).ThenBy(c => c.HardwareName)
             .ThenByDescending(c => c.IsPrimary).ThenBy(c => c.Name).ToArray();
         if (_automaticSelection || !Channels.Any(c => c.Id == SelectedSourceId))
@@ -44,7 +45,7 @@ public sealed class ChannelDashboardService(IEnergyRepository repository, IPower
         if (Channels.Count == 0) await RefreshChannelsAsync(cancellationToken);
         var source = SelectedSourceId ?? "hardware:waiting";
         var channel = Channels.FirstOrDefault(c => c.Id == source);
-        if (source == OtherPowerView.SourceId && history is not null)
+        if (source is OtherPowerView.SourceId or PeripheralPowerComposer.ViewSourceId && history is not null)
         {
             if (date > LocalTimeRules.DateAt(clock.UtcNow, zone))
             {
@@ -68,6 +69,15 @@ public sealed class ChannelDashboardService(IEnergyRepository repository, IPower
     public async Task<IReadOnlyList<PowerSample>> GetRecentForSourceAsync(string sourceId, int count, CancellationToken cancellationToken = default)
     {
         var now = clock.UtcNow;
+        if (sourceId == PeripheralPowerComposer.ViewSourceId)
+        {
+            var ids = Channels.Where(c => c.Kind == PowerComponentKind.Peripheral && c.Id != sourceId).Select(c => c.Id).ToArray();
+            var points = new List<PowerSample>();
+            foreach (var id in ids) points.AddRange(await repository.ReadWindowAsync(id, now.AddMinutes(-10), now, cancellationToken));
+            return points.Where(s => s.Timestamp >= now.AddMinutes(-10) && s.Timestamp <= now).GroupBy(s => s.Timestamp.UtcTicks)
+                .OrderBy(g => g.Key).Select(g => g.Count(s => s.HasUsablePower) == 1 ? g.Single(s => s.HasUsablePower) with { Source = sourceId } :
+                    g.First() with { Source = sourceId, Watts = null, QualityFlags = PowerQualityFlags.MissingPower }).TakeLast(count).ToArray();
+        }
         if (sourceId == OtherPowerView.SourceId)
         {
             var components = new List<IReadOnlyList<PowerSample>>();

@@ -9,30 +9,35 @@ public sealed partial class MainViewModel
 {
     private string? _categoryKey;
     public IReadOnlyList<PowerCategoryOption> PowerCategories { get; } =
-        [new("whole", "整机"), new("cpu", "CPU"), new("gpu", "显卡"), new("memory", "内存"), new("other", "其他")];
+        [new("whole", "整机"), new("cpu", "CPU"), new("gpu", "显卡"), new("peripherals", "外设"), new("other", "其他")];
     public string SelectedCategoryKey => IsWholePcView ? "whole" : _categoryKey ?? "cpu";
     public string SelectedCategoryLabel => !HasHardwareChannels ? "模拟演示" : PowerCategories.FirstOrDefault(c => c.Key == SelectedCategoryKey)?.Name ?? "硬件";
     public IReadOnlyList<PowerDeviceOption> DeviceOptions { get; private set; } = [];
     public bool HasDeviceChoices => DeviceOptions.Count > 1;
     private PowerChannel? FocusedChannel => (_dashboard as IChannelDashboardService)?.Channels.FirstOrDefault(c => c.Id == SelectedSource);
     public string SelectedHardwareName => FocusedChannel is { } c ? c.HardwareName == "未提供功率接口" ? "自动估算" :
-        c.Kind == PowerComponentKind.WholePc ? "这台电脑 · 不含显示器" : c.HardwareName : "等待读取";
+        c.Kind == PowerComponentKind.WholePc ? c.Scope == "主机 + 外设" ? "主机 + 已配置外设" : "这台电脑 · 不含独立供电外设" : c.HardwareName : "等待读取";
     public string CompactDataBadge => IsSimulated ? "模拟数据" : FocusedChannel is null || !CurrentSourceReadable ? "暂无数据" : FocusedChannel.IsEstimated ? "估算" :
         FocusedChannel is { Kind: PowerComponentKind.Gpu, IsPrimary: false } ? "局部读数" : "传感器读数";
-    public string CompactPowerHint => !IsSampling ? "已暂停" : !Fresh || !CurrentSourceReadable || Latest?.HasUsablePower != true ? "暂无可用功率" :
-        IsSimulated ? "演示数据，非真实测量" : IsWholePcView ? "估算功率 · 不含显示器" :
+    public string CompactPowerHint => !IsSampling ? "已暂停 · 暂停时段不补算" : ErrorMessage.Length > 0 ? "读取中断 · 正在重试" :
+        NeedsCpuPermission && (SelectedCategoryKey is "cpu" or "whole") && Latest?.HasUsablePower != true ? "CPU 需要 Windows 授权" :
+        Latest is null ? "等待首次读数" : !Fresh ? "读数已过期 · 等待更新" :
+        !CurrentSourceReadable || !Latest.HasUsablePower ? "暂不可读 · 未按零计算" :
+        IsSimulated ? "演示数据，非真实测量" : IsWholePcView ? FocusedChannel?.Scope == "主机 + 外设" ? "主机 + 外设估算" : FocusedChannel?.IsEstimated == true ? "主机估算 · 不含独立供电外设" : "电源输入读数 · 不含独立供电外设" :
+        SelectedCategoryKey == "peripherals" ? "手动瓦数估算 · 非实测" :
         Latest.IsEstimated && FocusedChannel is { Kind: PowerComponentKind.Memory } ? "通用功率估算，非内存实时实测" :
         Latest.IsEstimated ? "估算功率，非实测" : FocusedChannel is { Kind: PowerComponentKind.Gpu, IsPrimary: false } ? "局部功率，不代表显卡总功耗" : "来自硬件传感器";
     public string CompactCoverage => $"有效记录 {(_snapshot?.Energy.CoveredDuration.TotalMinutes ?? 0):F1} 分钟";
     public string CompactCostHint => CostText == "—" ? "填写电价后自动计算" : "按已记录电量估算";
     public string ChartFooter => IsHistoryMode ? HistoryFooter : !IsSampling ? "已暂停记录" : Latest is null ? "等待第一条记录" :
         "更新于 " + TimeZoneInfo.ConvertTime(Latest.Timestamp, _zone).ToString("HH:mm:ss");
-    public bool ShowCpuPermissionHelp => NeedsCpuPermission && SelectedCategoryKey is "whole" or "cpu";
+    public bool ShowCpuPermissionHelp => NeedsCpuPermission && (SelectedCategoryKey == "cpu" || SelectedCategoryKey == "whole" && Latest?.HasUsablePower != true);
 
     private AsyncRelayCommand? _selectCategory;
     public AsyncRelayCommand SelectCategoryCommand => _selectCategory ??= new(async value =>
     {
         var key = value?.ToString();
+        if (key == "memory") key = "other"; // Older saved choices now belong to the main unit's other parts.
         if (_dashboard is not IChannelDashboardService channels || !PowerCategories.Any(c => c.Key == key)) return;
         if (key == "whole") { await ChangePowerViewAsync(true); return; }
         _wholePcView = false; _categoryKey = key; _viewGeneration++;
@@ -75,6 +80,7 @@ public sealed partial class MainViewModel
     private static IEnumerable<PowerChannel> CategoryDevices(IReadOnlyList<PowerChannel> channels, string key)
     {
         if (key == "other") return channels.Where(c => c.Id == OtherPowerView.SourceId);
+        if (key == "peripherals") return channels.Where(c => c.Id == PeripheralPowerComposer.ViewSourceId);
         var candidates = channels.Where(c => !c.IsSimulated && c.Availability != PowerAvailability.Disconnected && CategoryKey(c.Kind) == key);
         if (key is "cpu" or "memory") return candidates.OrderByDescending(c => c.IsPrimary).Take(1);
         if (key == "gpu") return candidates.GroupBy(c => c.Id.StartsWith("lhm:", StringComparison.Ordinal) ? c.Id.Split(':', 3)[1] : c.HardwareName)
@@ -86,7 +92,7 @@ public sealed partial class MainViewModel
     private static string? CategoryKey(PowerComponentKind kind) => kind switch
     {
         PowerComponentKind.WholePc => "whole", PowerComponentKind.Cpu => "cpu", PowerComponentKind.Gpu => "gpu",
-        PowerComponentKind.Memory => "memory", PowerComponentKind.Storage or PowerComponentKind.Other or PowerComponentKind.Fan or PowerComponentKind.Motherboard => "other", _ => null
+        PowerComponentKind.Peripheral => "peripherals", PowerComponentKind.Memory or PowerComponentKind.Storage or PowerComponentKind.Other or PowerComponentKind.Fan or PowerComponentKind.Motherboard => "other", _ => null
     };
 }
 

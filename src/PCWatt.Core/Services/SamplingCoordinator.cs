@@ -7,7 +7,7 @@ namespace PCWatt.Core.Services;
 /// <summary>One application-owned loop; window visibility never controls recording.</summary>
 public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnergyRepository repository,
     int intervalSeconds = 30, TimeProvider? timeProvider = null,
-    Func<int>? maximumIntegrationInterval = null, bool discoverWhenPaused = false) : ISamplingController, ITemperatureProvider, IUtilizationProvider, IAsyncDisposable
+    Func<int>? maximumIntegrationInterval = null, bool discoverWhenPaused = false) : ISamplingController, ITemperatureProvider, IUtilizationProvider, ISensorTelemetryProvider, IAsyncDisposable
 {
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim _gate = new(1);
@@ -33,6 +33,7 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
     private bool _catalogDirty;
     private int _pendingFrames;
     private readonly HashSet<string> _recordedSources = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _closedSources = new(StringComparer.Ordinal);
     private volatile IReadOnlyList<PowerChannel> _channels = [];
     private volatile IReadOnlyList<PowerSample> _latestSamples = [];
 
@@ -42,6 +43,8 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
     public IReadOnlyList<TemperatureSample> Temperatures => _temperatures;
     private volatile IReadOnlyList<UtilizationSample> _utilization = [];
     public IReadOnlyList<UtilizationSample> Utilization => _utilization;
+    private volatile IReadOnlyList<HardwareSensorSample> _sensors = [];
+    public IReadOnlyList<HardwareSensorSample> Sensors => _sensors;
     public bool IsSuspended => _suspended;
 
     public bool IsPaused => _paused;
@@ -248,6 +251,7 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
             _latestSamples = [];
             _temperatures = [];
             _utilization = [];
+            _sensors = [];
             LastError = "系统时间早于上一条样本，暂不累计；时间恢复后开始新的记录区间。";
             return;
         }
@@ -257,12 +261,17 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
         {
             var flags = input.QualityFlags;
             if (discontinuity) flags |= PowerQualityFlags.ClockDiscontinuity;
-            if (_boundary || !_recordedSources.Contains(input.Source)) flags |= PowerQualityFlags.RecordingBoundary;
+            if (_boundary || !_recordedSources.Contains(input.Source) || _closedSources.Contains(input.Source)) flags |= PowerQualityFlags.RecordingBoundary;
             return (input with { QualityFlags = flags,
                 MaximumIntervalSeconds = Math.Max(maximumIntegrationInterval?.Invoke() ?? 30, IntervalSeconds * 3) }).WithValidatedQuality();
         }).ToArray();
         _boundary = false;
-        _pending.AddRange(samples);
+        var disconnected = frame.Channels.Where(c => c.Availability == PowerAvailability.Disconnected)
+            .Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        // One null endpoint closes a vanished source. Repeating it forever only grows the DB.
+        _pending.AddRange(samples.Where(s => !disconnected.Contains(s.Source) || !_closedSources.Contains(s.Source)));
+        _closedSources.Clear();
+        _closedSources.UnionWith(disconnected);
         _pendingFrames++;
         foreach (var sample in samples) _recordedSources.Add(sample.Source);
         _previousTimestamp = frame.Timestamp;
@@ -272,6 +281,7 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
             t.Kind is PowerComponentKind.Cpu or PowerComponentKind.Gpu).ToArray();
         _utilization = frame.Utilization.Where(t => t.Timestamp == frame.Timestamp &&
             t.Kind is PowerComponentKind.Cpu or PowerComponentKind.Gpu or PowerComponentKind.Memory).ToArray();
+        _sensors = frame.Sensors.Where(s => s.Timestamp == frame.Timestamp).ToArray();
         LatestSample = samples.FirstOrDefault(s => s.HasUsablePower) ?? samples.FirstOrDefault();
         LastError = null;
     }
@@ -293,6 +303,7 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
     {
         _temperatures = [];
         _utilization = [];
+        _sensors = [];
         var source = _source;
         _source = null;
         try

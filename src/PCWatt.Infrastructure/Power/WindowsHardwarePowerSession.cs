@@ -9,7 +9,7 @@ using PCWatt.Core.Models;
 
 namespace PCWatt.Infrastructure.Power;
 
-/// <summary>Read-only power and CPU/GPU temperatures in the same hardware update.</summary>
+/// <summary>Read-only power, temperatures and fan speeds in the same hardware update.</summary>
 [SupportedOSPlatform("windows")]
 internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
 {
@@ -24,6 +24,8 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
     private readonly WindowsSystemUsageReader _systemUsage = new();
     private readonly List<HardwareUtilizationReading> _utilization = [];
     public IReadOnlyList<HardwareUtilizationReading> Utilization => _utilization;
+    private readonly List<HardwareSensorReading> _sensors = [];
+    public IReadOnlyList<HardwareSensorReading> Sensors => _sensors;
 
     public WindowsHardwarePowerSession()
     {
@@ -50,6 +52,7 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
             // MemoryGroup probes SPD/thermal sensors and loads a separate driver interface.
             // DRAM watts are read from the existing CPU power domain instead; no SPD probing.
             TryEnable(() => _computer.IsStorageEnabled = true);
+            TryEnable(() => _computer.IsPsuEnabled = true);
             if (cpuAccessible) TryEnable(() => _computer.IsMotherboardEnabled = true);
         }
         catch (Exception e)
@@ -91,6 +94,7 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _temperatures.Clear();
+        _sensors.Clear();
         _utilization.Clear();
         _utilization.AddRange(_systemUsage.Read());
         var result = new List<HardwarePowerReading>();
@@ -105,6 +109,12 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
             result.Add(new("gpu", "图形处理器", PowerComponentKind.Gpu, "gpu/unavailable", "Unavailable", null,
                 _initializationError is null ? PowerAvailability.Unsupported : PowerAvailability.ReadFailed,
                 _initializationError ?? "此设备未提供可读的 GPU 功率传感器。"));
+        foreach (var hardware in result.Where(r => r.Kind is PowerComponentKind.Cpu or PowerComponentKind.Gpu or PowerComponentKind.Storage)
+            .DistinctBy(r => r.HardwareId))
+            if (!_sensors.Any(s => s.HardwareId == hardware.HardwareId && s.Metric == HardwareSensorMetric.Temperature))
+                _sensors.Add(new(hardware.HardwareId, hardware.HardwareName, hardware.Kind, "temperature/unavailable", "温度",
+                    HardwareSensorMetric.Temperature, null, hardware.Availability == PowerAvailability.PermissionDenied ?
+                    PowerAvailability.PermissionDenied : PowerAvailability.Unsupported, "此设备未提供可读的温度接口。"));
         return result;
     }
 
@@ -117,6 +127,7 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
             HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel => PowerComponentKind.Gpu,
             HardwareType.Memory => PowerComponentKind.Memory,
             HardwareType.Storage => PowerComponentKind.Storage,
+            HardwareType.Psu => PowerComponentKind.PowerSupply,
             _ => PowerComponentKind.Other
         };
         Exception? failure = null;
@@ -125,20 +136,33 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
         foreach (var sensor in hardware.Sensors)
         {
             token.ThrowIfCancellationRequested();
+            // SQLite owns history. The vendor's per-sensor history is unused by PC Watt
+            // and would otherwise accumulate while the tray monitor runs for hours.
+            ClearSensorHistory(sensor);
             if (sensor.SensorType == SensorType.Load && kind == PowerComponentKind.Gpu && sensor.Name.Equals("GPU Core", StringComparison.OrdinalIgnoreCase))
             {
                 try { _utilization.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Name, failure is null ? sensor.Value : null)); }
                 catch (Exception) { _utilization.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Name, null)); }
                 continue;
             }
-            if (sensor.SensorType == SensorType.Temperature && kind is PowerComponentKind.Cpu or PowerComponentKind.Gpu)
+            if (sensor.SensorType is SensorType.Temperature or SensorType.Fan)
             {
-                try { _temperatures.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Name, failure is null ? sensor.Value : null)); }
-                catch (Exception) { _temperatures.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Name, null)); }
-                continue;
+                float? value = null;
+                var state = failure is null ? PowerAvailability.Available : PowerAvailability.ReadFailed;
+                try { if (failure is null) value = sensor.Value; }
+                catch (Exception) { state = PowerAvailability.ReadFailed; }
+                _sensors.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Identifier.ToString(), sensor.Name,
+                    sensor.SensorType == SensorType.Temperature ? HardwareSensorMetric.Temperature : HardwareSensorMetric.FanSpeed,
+                    value, state, failure is not null ? "设备此次更新失败。" : null));
+                if (sensor.SensorType == SensorType.Temperature)
+                {
+                    if (kind is PowerComponentKind.Cpu or PowerComponentKind.Gpu)
+                        _temperatures.Add(new(hardware.Identifier.ToString(), hardware.Name, kind, sensor.Name, value));
+                    continue;
+                }
             }
             // RPM is only used to discover fan presence. It is never interpreted as watts.
-            if (sensor.SensorType == SensorType.Fan && kind is not (PowerComponentKind.Cpu or PowerComponentKind.Gpu))
+            if (sensor.SensorType == SensorType.Fan && kind is not (PowerComponentKind.Cpu or PowerComponentKind.Gpu or PowerComponentKind.PowerSupply))
             {
                 var fanId = sensor.Identifier.ToString();
                 try { if (sensor.Value is { } rpm && float.IsFinite(rpm) && rpm > 0) _knownFans.Add(fanId); }
@@ -168,6 +192,10 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
         foreach (var child in hardware.SubHardware) ReadHardware(child, result, token);
     }
 
+    internal static void ClearSensorHistory(ISensor sensor)
+    {
+        try { sensor.ClearValues(); } catch (Exception) { /* Cache cleanup must not block a reading. */ }
+    }
     public void Dispose() { if (_disposed) return; _disposed = true; _computer.Close(); }
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern SafeFileHandle CreateFileW(string name, uint access, uint share, IntPtr security,

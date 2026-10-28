@@ -22,6 +22,8 @@ public sealed record AppSettings
     public WholePcEstimateProfile? WholePcEstimate { get; init; }
     public bool RequestAdministratorOnLaunch { get; init; } = true;
     public bool AutomaticWholePcEstimate { get; init; } = true;
+    public PeripheralPowerProfile? Peripherals { get; init; }
+    public bool PeripheralsEnabled { get; init; }
 
     [JsonIgnore]
     public ElectricityTariff? Tariff => CurrencyCode is null && PricePerKilowattHour is null ? null :
@@ -46,6 +48,8 @@ public sealed record AppSettings
     {
         _ = Tariff;
         WholePcEstimate?.Validate();
+        Peripherals?.Validate();
+        if (PeripheralsEnabled && Peripherals is null) throw new InvalidDataException("请先配置外设功率，再启用外设计费。");
         if (SelectedPowerSource is { Length: > 512 } || VisiblePowerSources is { Length: > 128 } ||
             VisiblePowerSources?.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 512) == true)
             throw new InvalidDataException("硬件显示配置无效，请检查传感器标识和数量。");

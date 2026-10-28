@@ -12,14 +12,19 @@ public sealed partial class MainViewModel
     private WholePcBillingOverview? _billingSnapshot;
     private DailyEnergySnapshot? _yearSnapshot;
     private BillingPeriod _period = BillingPeriod.Day;
+    private DailyCostDifference? _comparison;
 
     /// <summary>今日 / 本月 / 今年共用一个口径，切换只改时间范围，不改变整机统计规则。</summary>
     public BillingPeriod Period => _period;
     public bool IsDayPeriod => _period == BillingPeriod.Day;
     public bool IsMonthPeriod => _period == BillingPeriod.Month;
     public bool IsYearPeriod => _period == BillingPeriod.Year;
-    public string BillingPeriodLabel => _period switch
+    public bool IsHourPeriod => _period == BillingPeriod.Hour;
+    public bool IsWeekPeriod => _period == BillingPeriod.Week;
+    public string BillingPeriodLabel => _period == BillingPeriod.Hour && _historyHour < 24 ? $"{HistoryDate:MM-dd} {_historyHour:00} 时" : _historyDate is not null ? HistoryDateLabel : _period switch
     {
+        BillingPeriod.Hour => "最近一小时",
+        BillingPeriod.Week => "最近七天",
         BillingPeriod.Month => "本月",
         BillingPeriod.Year => "今年",
         _ => "今日"
@@ -27,17 +32,21 @@ public sealed partial class MainViewModel
     public ICommand ShowDayBillingCommand => new RelayCommand(() => ChangePeriod(BillingPeriod.Day));
     public ICommand ShowMonthBillingCommand => new RelayCommand(() => ChangePeriod(BillingPeriod.Month));
     public ICommand ShowYearBillingCommand => new RelayCommand(() => ChangePeriod(BillingPeriod.Year));
+    public ICommand ShowHourBillingCommand => new RelayCommand(() => ChangePeriod(BillingPeriod.Hour));
+    public ICommand ShowWeekBillingCommand => new RelayCommand(() => ChangePeriod(BillingPeriod.Week));
     private void ChangePeriod(BillingPeriod period)
     {
         if (_period == period) return;
         _period = period;
+        _rangeSnapshot = null;
         _viewGeneration++;
         HistoryData = null;
         NotifyAll();
         // 今年的区间比今日/本月长，切过去时补一次读取；其余时间沿用普通刷新。
         if (_historyService is not null || period == BillingPeriod.Year && _billing is not null) _ = RefreshAsync(false, CancellationToken.None);
     }
-    private DailyEnergySnapshot? PeriodSnapshot => _period switch
+    private DailyEnergySnapshot? PeriodSnapshot => SelectedCategoryKey == "peripherals" && HistoryData is { Source: PeripheralPowerComposer.ViewSourceId } h
+        ? new(LocalTimeRules.DateAt(h.Summary.Start, _zone), h.Summary, null, h.Cost) : UsesCustomRange ? _rangeSnapshot : _period switch
     {
         BillingPeriod.Month => _billingSnapshot?.Month,
         BillingPeriod.Year => _yearSnapshot,
@@ -45,8 +54,20 @@ public sealed partial class MainViewModel
     };
 
     public string BillingCost => Amount(PeriodSnapshot);
+    public string BillingHeading => SelectedCategoryKey == "peripherals" ? "外设电费" : "总电费";
+    public string BillingBadge => SelectedCategoryKey == "peripherals" ? "外设估算" :
+        PeriodSnapshot is not { } snapshot || snapshot.Energy.CoveredDuration == TimeSpan.Zero ? "暂无记录" :
+        snapshot.Energy.IsEstimated ? "含估算" : "电源读数";
     public string BillingEnergy => BillEnergy(PeriodSnapshot);
-    public string BillingHint => BillHint(PeriodSnapshot);
+    public string BillingHint => IsDayPeriod && _historyDate is null && SelectedCategoryKey != "peripherals" &&
+        _comparison is { } comparison && Amount(PeriodSnapshot) != "—" ? ComparisonText(comparison) : BillHint(PeriodSnapshot);
+    private static string ComparisonText(DailyCostDifference comparison)
+    {
+        var value = Math.Abs(comparison.Amount);
+        var rounded = decimal.Round(value, 2, MidpointRounding.AwayFromZero);
+        return rounded == 0 ? "同记录时段 · 与昨日电费基本持平" :
+            $"同记录时段 · 比昨日{(comparison.Amount > 0 ? "多" : "少")}花 {rounded:F2} 元";
+    }
     public string BillingCoverage => BillCoverage(PeriodSnapshot, BillingPeriodLabel);
     /// <summary>电费卡细条跟随所选区间，不沿用首页当日覆盖率。</summary>
     public double BillingCoveragePercent => (PeriodSnapshot?.Energy.Coverage ?? 0) * 100;
@@ -58,8 +79,9 @@ public sealed partial class MainViewModel
     public string MonthBillHint => BillHint(_billingSnapshot?.Month);
     public string TodayBillCoverage => BillCoverage(_billingSnapshot?.Today, "今日");
     public string MonthBillCoverage => BillCoverage(_billingSnapshot?.Month, "本月");
-    public string BillingScope => "整机估算 · 不含显示器 · 仅统计有效记录，缺失未补算";
-    public string BillingDetails => _billingSnapshot is not { } b ? "等待整机记录；组件费用不作为整机电费。" :
+    public string BillingScope => SelectedCategoryKey == "peripherals" ? "仅已配置的独立供电外设估算，未配置及缺失时段不补算" :
+        "主机及启用期间配置的外设 · 仅统计有效记录，缺失未补算";
+    public string BillingDetails => SelectedCategoryKey == "peripherals" ? PeriodSnapshot is { } peripheral ? BillDetail(peripheral) : "暂无外设记录；启用配置后开始统计。" : UsesCustomRange ? PeriodSnapshot is { } s ? BillDetail(s) : "正在读取所选时段整机账单。" : _billingSnapshot is not { } b ? "等待整机记录；组件费用不作为整机电费。" :
         $"{BillingScope}。\n今日：{BillDetail(b.Today)}\n本月：{BillDetail(b.Month)}" +
         (_yearSnapshot is { } y ? $"\n今年：{BillDetail(y)}" : "");
 

@@ -146,12 +146,12 @@ public sealed class AutomaticHardwareTests
     }
 
     [TestMethod]
-    public async Task DefaultSettingsRequestConsentAndResetToAutomaticWithoutOverwritingOtherPreferences()
+    public async Task ChangingAdministratorPreferencePreservesLegacyHistoryProfileAndOtherPreferences()
     {
         var current = new AppSettings { SamplingIntervalSeconds = 10, WholePcEstimate = WholePcAndCpuTests.Profile };
         Assert.IsTrue(current.RequestAdministratorOnLaunch); Assert.IsTrue(current.AutomaticWholePcEstimate);
         var model = new SettingsViewModel(() => current, change => { current = change(current); return Task.CompletedTask; });
-        await model.UseAutomaticEstimateCommand.ExecuteAsync(); Assert.IsNull(current.WholePcEstimate);
+        await model.LoadDetailsCommand.ExecuteAsync(); Assert.AreEqual(WholePcAndCpuTests.Profile, current.WholePcEstimate);
         Assert.AreEqual(10, current.SamplingIntervalSeconds);
         await ((AsyncRelayCommand)model.ChangeCommand).ExecuteAsync("administrator");
         Assert.IsFalse(current.RequestAdministratorOnLaunch); Assert.IsTrue(current.AutoStartEnabled);

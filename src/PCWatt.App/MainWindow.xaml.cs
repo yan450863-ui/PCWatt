@@ -22,7 +22,8 @@ public partial class MainWindow : Window
     private bool _allowClose;
 
     public MainWindow(MainViewModel viewModel, int samplingIntervalSeconds, int maximumGapSeconds,
-        ISamplingController? sampling = null, Func<bool>? closeToTray = null, Func<Task>? exit = null, Action? releaseView = null)
+        ISamplingController? sampling = null, Func<bool>? closeToTray = null, Func<Task>? exit = null, Action? releaseView = null,
+        bool setupPrice = false)
     {
         Resources.MergedDictionaries.Add(new ResourceDictionary
             { Source = new Uri("pack://application:,,,/PCWatt.App;component/Themes/Theme.xaml", UriKind.Absolute) });
@@ -41,6 +42,10 @@ public partial class MainWindow : Window
         if (sampling is not null) sampling.StateChanged += OnSampleChanged;
         _clockTimer.Tick += (_, _) => _viewModel.TickClock();
         Loaded += async (_, _) => await RefreshAsync();
+        if (setupPrice) Loaded += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            TariffEditorHeading.BringIntoView(); PriceInputBox.Focus();
+        });
         IsVisibleChanged += (_, _) => UpdateActivity();
         StateChanged += (_, _) => UpdateActivity();
         Activated += (_, _) => UpdateActivity();
@@ -87,12 +92,12 @@ public partial class MainWindow : Window
     private bool Presenting => IsVisible && WindowState != WindowState.Minimized && IsActive;
     private void OnSampleChanged(object? sender, EventArgs e)
     {
-        if (!_presenting || Dispatcher.HasShutdownStarted) return;
+        if (!_presenting || !_viewModel.IsOverview || Dispatcher.HasShutdownStarted) return;
         _ = Dispatcher.InvokeAsync(async () => { if (Presenting) await RefreshAsync(); });
     }
     private async Task RefreshAsync()
     {
-        if (!Presenting || _lifetime.IsCancellationRequested) return;
+        if (!Presenting || !_viewModel.IsOverview || _lifetime.IsCancellationRequested) return;
         var token = _presentationLifetime.Token;
         try
         {

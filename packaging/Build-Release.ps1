@@ -16,7 +16,7 @@ New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
 $taskPayload = Join-Path $OutputDirectory 'app'
 Push-Location $taskRoot
 try {
-    & dotnet publish src/PCWatt.App/PCWatt.App.csproj -c Release -r win-x64 --self-contained true -p:RuntimeFrameworkVersion=10.0.12 -p:PublishTrimmed=false -p:PublishSingleFile=false -p:DebugSymbols=false -p:DebugType=None -o $taskPayload
+    & dotnet publish src/PCWatt.App/PCWatt.App.csproj --artifacts-path (Join-Path $taskRoot "artifacts\build-package-$taskVersion") -c Release -r win-x64 --self-contained true -p:RuntimeFrameworkVersion=10.0.12 -p:PublishTrimmed=false -p:PublishSingleFile=false -p:DebugSymbols=false -p:DebugType=None -o $taskPayload
     if ($LASTEXITCODE -ne 0) { throw 'Application publish failed.' }
     Copy-Item -LiteralPath 'docs\INSTALLATION.txt' -Destination (Join-Path $taskPayload '使用说明.txt')
     & $Compiler ("/DAppVersion=$taskVersion") ("/DPayloadDir=$taskPayload") ("/DReleaseDir=$OutputDirectory") 'packaging\PCWatt.iss'

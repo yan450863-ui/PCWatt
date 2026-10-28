@@ -39,7 +39,7 @@ public sealed class WindowRenderTests
                 var directory = Path.Combine(root, "artifacts", "ui");
                 Directory.CreateDirectory(directory);
                 foreach (var (width, height, name) in new[] { (1164, 810, "dashboard.png"), (944, 660, "dashboard-minimum.png"),
-                    (1164, 810, "settings.png"), (1164, 810, "settings-tariffs.png"), (944, 660, "settings-tariffs-minimum.png"), (1164, 810, "settings-report.png") })
+                    (1164, 810, "settings.png"), (1164, 810, "settings-tariffs.png"), (944, 660, "settings-tariffs-minimum.png"), (1164, 810, "settings-report.png"), (1164, 810, "settings-peripherals.png"), (944, 660, "settings-peripherals-minimum.png"), (944, 660, "settings-data-minimum.png") })
                 {
                     if (name == "settings.png") model.ShowSettingsCommand.Execute(null);
                     content.Measure(new Size(width, height));
@@ -57,9 +57,13 @@ public sealed class WindowRenderTests
                             expander.IsExpanded = true;
                             target = expander;
                         }
-                        else target = (FrameworkElement)window.FindName("TariffEditorHeading");
+                        else target = (FrameworkElement)window.FindName(name.StartsWith("settings-peripherals", StringComparison.Ordinal) ? "PeripheralEditorHeading" :
+                            name.StartsWith("settings-data", StringComparison.Ordinal) ? "DataEditorHeading" : "TariffEditorHeading");
                         content.UpdateLayout();
-                        var scroll = Descendants<System.Windows.Controls.ScrollViewer>(content).First();
+                        DependencyObject ancestor = target;
+                        while (ancestor is not System.Windows.Controls.ScrollViewer) ancestor = VisualTreeHelper.GetParent(ancestor)
+                            ?? throw new InvalidOperationException("设置项必须位于设置滚动容器内。");
+                        var scroll = (System.Windows.Controls.ScrollViewer)ancestor;
                         scroll.ScrollToVerticalOffset(scroll.VerticalOffset + target.TranslatePoint(new Point(), scroll).Y - 24);
                         content.UpdateLayout();
                     }
@@ -90,7 +94,7 @@ public sealed class WindowRenderTests
                     Assert.IsFalse(((PCWatt.App.Controls.SvgMotion)moneyWindow.FindName("MoneyMotion")).IsAnimating, "布局渲染不应启动动效。");
                     Assert.IsFalse(((PCWatt.App.Controls.SvgMotion)moneyWindow.FindName("HardwareMotion")).IsAnimating);
                     Assert.AreEqual(EnergyPeriod.Day, ((PCWatt.App.Controls.PowerTrend)chart).History!.Period);
-                    Assert.IsTrue(chart.TranslatePoint(new Point(0, chart.ActualHeight), panel).Y < height - 30, "默认与最小窗口均应展示完整功耗曲线。");
+                    Assert.IsTrue(chart.TranslatePoint(new Point(0, chart.ActualHeight), panel).Y < height - 30, $"默认与最小窗口均应展示完整功耗曲线：{width}×{height}，图表高 {chart.ActualHeight}，底部 {chart.TranslatePoint(new Point(0, chart.ActualHeight), panel).Y}。");
                     var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); bitmap.Render(panel);
                     var label = new DrawingVisual();
                     using (var draw = label.RenderOpen())
@@ -148,20 +152,62 @@ public sealed class WindowRenderTests
                     using var smallFile = File.Create(Path.Combine(directory, name.Replace("-fixture", "-minimum-fixture", StringComparison.Ordinal))); small.Save(smallFile);
                 }
                 money.ShowDayBillingCommand.Execute(null);
-                money.SelectCategoryCommand.ExecuteAsync("memory").GetAwaiter().GetResult();
+                money.SelectCategoryCommand.ExecuteAsync("peripherals").GetAwaiter().GetResult();
                 var memoryPanel = (FrameworkElement)moneyWindow.Content;
                 memoryPanel.Measure(new Size(1104, 760)); memoryPanel.Arrange(new Rect(0, 0, 1104, 760)); memoryPanel.UpdateLayout();
                 var memoryChart = (PCWatt.App.Controls.PowerTrend)moneyWindow.FindName("Trend");
                 Assert.IsTrue(memoryChart.History!.Buckets.All(b => b.Contributions.Count == 0));
-                Assert.Contains("非内存实时实测", money.CompactPowerHint);
+                Assert.Contains("手动瓦数估算", money.CompactPowerHint);
                 var memoryBitmap = new RenderTargetBitmap(1104, 760, 96, 96, PixelFormats.Pbgra32); memoryBitmap.Render(memoryPanel);
                 var memoryStamp = new DrawingVisual();
                 using (var draw = memoryStamp.RenderOpen()) draw.DrawText(new FormattedText("界面预览 · 测试数据，非真实测量", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"), FlowDirection.LeftToRight,
                     new Typeface("Microsoft YaHei UI"), 12, Brushes.DarkGoldenrod, 1), new Point(809, 734));
                 memoryBitmap.Render(memoryStamp);
                 var memoryEncoder = new PngBitmapEncoder(); memoryEncoder.Frames.Add(BitmapFrame.Create(memoryBitmap));
-                using (var memoryFile = File.Create(Path.Combine(directory, "calm-chart-memory-fixture.png"))) memoryEncoder.Save(memoryFile);
+                using (var memoryFile = File.Create(Path.Combine(directory, "wave-chart-peripherals-fixture.png"))) memoryEncoder.Save(memoryFile);
                 moneyWindow.Close();
+                var historyFixture = new HistoryUiFixture();
+                var historyModel = new PCWatt.App.ViewModels.MainViewModel(new SimpleSelectionTests.SelectionDashboard(includeExternal: true),
+                    new PCWatt.Core.Services.CostCalculator(), null, new FakeClock(TestData.Origin), TimeZoneInfo.Utc,
+                    TimeSpan.FromSeconds(90), billing: historyFixture, history: historyFixture, sensors: historyFixture);
+                historyModel.RefreshAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+                historyModel.SelectCategoryCommand.ExecuteAsync("whole").GetAwaiter().GetResult();
+                var historyWindow = new MainWindow(historyModel, 30, 30); historyModel.UpdatePreferences(false, 30, 30);
+                foreach (var (mode, width, height) in new[] { ("hour", 1104, 760), ("hour-minimum", 944, 660),
+                    ("week", 1104, 760), ("historical-month", 1104, 760) })
+                {
+                    if (mode.StartsWith("hour", StringComparison.Ordinal)) historyModel.ShowHourBillingCommand.Execute(null);
+                    else if (mode == "week") historyModel.ShowWeekBillingCommand.Execute(null);
+                    else { historyModel.ShowMonthBillingCommand.Execute(null); historyModel.HistoryDate = new(2026, 9, 15); }
+                    historyModel.RefreshAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+                    Assert.AreEqual("", historyModel.ErrorMessage);
+                    var panel = (FrameworkElement)historyWindow.Content;
+                    panel.Measure(new Size(width, height)); panel.Arrange(new Rect(0, 0, width, height)); panel.UpdateLayout();
+                    var trend = (PCWatt.App.Controls.PowerTrend)historyWindow.FindName("Trend");
+                    Assert.AreEqual(mode.StartsWith("hour", StringComparison.Ordinal) ? EnergyPeriod.Hour : mode == "week" ? EnergyPeriod.Week : EnergyPeriod.Month, trend.History!.Period);
+                    Assert.IsTrue(trend.ActualHeight >= 140);
+                    Assert.IsTrue(trend.TranslatePoint(new Point(0, trend.ActualHeight), panel).Y < height - 30);
+                    Assert.AreEqual(historyModel.BillingEnergy, "已记录 " + PCWatt.Core.Services.EnergyDisplay.Format(trend.History.Summary.KilowattHours) + " 度");
+                    var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); bitmap.Render(panel);
+                    var label = new DrawingVisual(); using (var draw = label.RenderOpen())
+                        draw.DrawText(new FormattedText("测试界面 · 模拟展示数据", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"), FlowDirection.LeftToRight,
+                            new Typeface("Microsoft YaHei UI"), 11, Brushes.Goldenrod, 1), new Point(width - 200, height - 24));
+                    bitmap.Render(label);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var file = File.Create(Path.Combine(directory, "history-" + mode + "-fixture.png")); encoder.Save(file);
+                }
+                var popup = (System.Windows.Controls.Primitives.Popup)historyWindow.FindName("SensorPopup");
+                System.Windows.Data.BindingOperations.ClearBinding(popup, System.Windows.Controls.Primitives.Popup.IsOpenProperty);
+                popup.IsOpen = false; historyModel.IsSensorsOpen = true;
+                var sensorPanel = (FrameworkElement)popup.Child; sensorPanel.DataContext = historyModel;
+                sensorPanel.Measure(new Size(440, 500)); sensorPanel.Arrange(new Rect(sensorPanel.DesiredSize)); sensorPanel.UpdateLayout();
+                Assert.HasCount(4, historyModel.SensorRows);
+                Assert.IsTrue(Descendants<System.Windows.Controls.TextBlock>(sensorPanel).Any(t => t.Text == "1050 RPM"));
+                var sensorBitmap = new RenderTargetBitmap(440, (int)Math.Ceiling(sensorPanel.ActualHeight), 96, 96, PixelFormats.Pbgra32); sensorBitmap.Render(sensorPanel);
+                var sensorEncoder = new PngBitmapEncoder(); sensorEncoder.Frames.Add(BitmapFrame.Create(sensorBitmap));
+                using (var file = File.Create(Path.Combine(directory, "expanded-sensors-fixture.png"))) sensorEncoder.Save(file);
+                historyWindow.Close(); Assert.IsFalse(historyModel.IsSensorsOpen);
+
                 Assert.IsNull(moneyWindow.Content); Assert.IsNull(moneyWindow.DataContext);
                 Assert.AreEqual(0, moneyWindow.Resources.MergedDictionaries.Count);
                 Assert.IsNull(money.HistoryData); Assert.IsTrue(money.IsSampling);
@@ -203,7 +249,7 @@ public sealed class WindowRenderTests
                 var simpleModel = SimpleSelectionTests.Create();
                 simpleModel.RefreshAsync(false, CancellationToken.None).GetAwaiter().GetResult();
                 var simpleWindow = new MainWindow(simpleModel, 30, 30); simpleModel.UpdatePreferences(false, 30, 30);
-                foreach (var key in new[] { "whole", "other", "memory" })
+                foreach (var key in new[] { "whole", "other", "peripherals" })
                 {
                     simpleModel.SelectCategoryCommand.ExecuteAsync(key).GetAwaiter().GetResult();
                     var panel = (FrameworkElement)simpleWindow.Content;
@@ -229,38 +275,13 @@ public sealed class WindowRenderTests
                 easyModel.ShowSettingsCommand.Execute(null);
                 var easyWindow = new MainWindow(easyModel, 30, 30); easyModel.UpdatePreferences(false, 30, 30);
                 var easyPanel = (FrameworkElement)easyWindow.Content;
-                foreach (var advanced in new[] { false, true })
-                {
-                    easyPanel.Measure(new Size(1164, 880)); easyPanel.Arrange(new Rect(0, 0, 1164, 880)); easyPanel.UpdateLayout();
-                    var calibration = Descendants<System.Windows.Controls.Expander>(easyPanel).Single(e => e.Header?.ToString()?.StartsWith("高级：手动校准", StringComparison.Ordinal) == true);
-                    Assert.AreEqual(advanced, calibration.IsExpanded);
-                    if (!advanced)
-                    {
-                        calibration.IsExpanded = true;
-                        easyPanel.UpdateLayout();
-                        // Explicit item template must render a friendly name in the selected box.
-                        var picker = Descendants<System.Windows.Controls.ComboBox>(easyPanel).Single(c => c.ItemsSource == easyModel.Settings.EstimateCpuOptions);
-                        Assert.IsNotNull(picker.ItemTemplate); Assert.AreEqual(string.Empty, picker.DisplayMemberPath);
-                        Assert.IsTrue(Descendants<System.Windows.Controls.TextBlock>(picker).Any(t => t.Text.Contains("AMD Ryzen 7 9700X", StringComparison.Ordinal)));
-                        Assert.IsFalse(Descendants<System.Windows.Controls.TextBlock>(picker).Any(t => t.Text.Contains("PowerChannel {", StringComparison.Ordinal)));
-                        calibration.IsExpanded = false; easyPanel.UpdateLayout();
-                    }
-                    else
-                    {
-                        var scroll = Descendants<System.Windows.Controls.ScrollViewer>(easyPanel).First();
-                        scroll.ScrollToVerticalOffset(scroll.VerticalOffset + calibration.TranslatePoint(new Point(), scroll).Y - 24);
-                        easyPanel.UpdateLayout();
-                    }
-                    var bitmap = new RenderTargetBitmap(1164, 880, 96, 96, PixelFormats.Pbgra32); bitmap.Render(easyPanel);
-                    var label = new DrawingVisual();
-                    using (var draw = label.RenderOpen())
-                        draw.DrawText(new FormattedText("布局测试 · 非真实硬件测量", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"), FlowDirection.LeftToRight,
-                            new Typeface("Microsoft YaHei UI"), 12, Brushes.Gold, 1), new Point(890, 858));
-                    bitmap.Render(label);
-                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    using var file = File.Create(Path.Combine(directory, advanced ? "settings-advanced-fixture.png" : "settings-easy-fixture.png")); encoder.Save(file);
-                    if (!advanced) calibration.IsExpanded = true;
-                }
+                easyPanel.Measure(new Size(1164, 880)); easyPanel.Arrange(new Rect(0, 0, 1164, 880)); easyPanel.UpdateLayout();
+                Assert.IsFalse(Descendants<System.Windows.Controls.Expander>(easyPanel).Any(e => e.Header?.ToString()?.Contains("高级", StringComparison.Ordinal) == true));
+                Assert.IsFalse(Descendants<System.Windows.Controls.Button>(easyPanel).Any(b => b.Content?.ToString() == "保存为新估算方案"));
+                Assert.IsNotNull(easyWindow.FindName("PeripheralEditorHeading"), "外设设置必须保留。");
+                Assert.IsNotNull(easyWindow.FindName("DataEditorHeading"));
+                Assert.IsTrue(Descendants<System.Windows.Controls.Button>(easyPanel).Any(b => b.Content?.ToString() == "备份数据"));
+                Assert.IsTrue(Descendants<System.Windows.Controls.Button>(easyPanel).Any(b => b.Content?.ToString() == "恢复数据"));
                 easyWindow.Close();
                 foreach (var (profile, name) in new (WholePcEstimateProfile?, string)[] { (null, "whole-unknown.png"), (WholePcAndCpuTests.Profile, "whole-estimated-fixture.png") })
                 {

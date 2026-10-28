@@ -88,7 +88,7 @@ public sealed class WholePcBillingCalculator(TimeSpan maximumGap)
         Consume(end);
         return new(LocalTimeRules.DateAt(start, zone), new(start, end, total, TimeSpan.FromTicks(coveredTicks), estimated, false, gaps),
             latest, new(charges.Values.OrderBy(c => c.Version.EffectiveFrom).ToArray(), unpriced),
-            new("billing:whole", "整机统计", "这台电脑（不含显示器）", PowerComponentKind.WholePc, "整机",
+            new("billing:whole", "总电费统计", "主机及启用期间配置的独立供电外设", PowerComponentKind.WholePc, "整机",
                 coveredTicks > 0 ? PowerAvailability.Available : PowerAvailability.Unsupported, IsEstimated: estimated));
     }
 }

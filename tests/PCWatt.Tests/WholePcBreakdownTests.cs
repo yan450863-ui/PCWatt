@@ -46,8 +46,8 @@ public sealed class WholePcBreakdownTests
         Assert.IsFalse(bucket.Contributions.Single(p => p.Part == EnergyPart.Cpu).IsEstimated);
         Assert.IsTrue(bucket.Contributions.Single(p => p.Part == EnergyPart.Other).IsEstimated);
         var hover = PowerTrend.HistoryTooltip(bucket, TimeZoneInfo.Utc);
-        Assert.HasCount(6, hover.Split('\n'));
-        foreach (var label in new[] { "CPU", "显卡", "内存", "其他" }) Assert.Contains(label, hover);
+        Assert.HasCount(5, hover.Split('\n'));
+        foreach (var label in new[] { "CPU", "显卡", "其他" }) Assert.Contains(label, hover);
         Assert.DoesNotContain("覆盖", hover); Assert.DoesNotContain("缺失", hover); Assert.DoesNotContain("硬盘", hover);
     }
 

@@ -15,7 +15,7 @@ public sealed class WholePcEnergyBreakdown(TimeSpan maximumGap, IReadOnlyList<Po
     {
         var parts = Parts(whole);
         return whole with { Source = OtherPowerView.SourceId,
-            Watts = parts is null ? null : parts.Where(p => p.Key is EnergyPart.Storage or EnergyPart.Other).Sum(p => p.Value.Watts),
+            Watts = parts is null ? null : parts.Where(p => p.Key is EnergyPart.Memory or EnergyPart.Storage or EnergyPart.Other).Sum(p => p.Value.Watts),
             IsEstimated = true, QualityFlags = parts is null ? whole.QualityFlags | PowerQualityFlags.MissingPower : whole.QualityFlags };
     }
 
@@ -106,6 +106,20 @@ public sealed class WholePcEnergyBreakdown(TimeSpan maximumGap, IReadOnlyList<Po
         }
         var samples = _components.Keys.Select(Read).Where(s => s is not null).Cast<PowerSample>().ToArray();
         var readings = samples.ToDictionary(s => s.Source, StringComparer.Ordinal);
+        if (whole.Source.StartsWith(PeripheralPowerComposer.TotalPrefix, StringComparison.Ordinal))
+        {
+            var hosts = catalog.Where(c => c.Kind == PowerComponentKind.HostPc && readings.TryGetValue(c.Id, out var s) && s.HasUsablePower).ToArray();
+            var external = catalog.Where(c => c.Kind == PowerComponentKind.Peripheral && readings.TryGetValue(c.Id, out var s) && s.HasUsablePower).ToArray();
+            if (hosts.Length != 1 || external.Length != 1) return null;
+            var host = readings[hosts[0].Id]; var peripheral = readings[external[0].Id];
+            if (!host.Source.StartsWith(PeripheralPowerComposer.HostPrefix, StringComparison.Ordinal)) return null;
+            var originalHost = host with { Source = host.Source[PeripheralPowerComposer.HostPrefix.Length..] };
+            if (PeripheralPowerComposer.TotalSourceId(originalHost.Source, peripheral.Source) != whole.Source || !whole.HasUsablePower ||
+                Math.Abs(host.Watts!.Value + peripheral.Watts!.Value - whole.Watts!.Value) > 0.0000001m) return null;
+            var hostParts = Parts(originalHost) ?? new() { [EnergyPart.Unattributed] = (host.Watts.Value, host.IsEstimated) };
+            hostParts[EnergyPart.Peripheral] = (peripheral.Watts.Value, true);
+            return hostParts;
+        }
         // The sampler retains disconnected streams as null rows. They were not members of the
         // original hardware frame and must not change the reconstructed automatic profile ID.
         var channels = catalog.Where(c => readings.TryGetValue(c.Id, out var sample) && sample.HasUsablePower && c.Kind != PowerComponentKind.WholePc)

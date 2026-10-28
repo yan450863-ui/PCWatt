@@ -1,9 +1,12 @@
 param([string]$Directory = '')
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
-if (!$Directory) { $Directory = Join-Path $taskRoot 'artifacts\releases\0.1.0' }
+[xml]$taskProps = Get-Content -LiteralPath (Join-Path $taskRoot 'Directory.Build.props')
+$taskVersion = [string]$taskProps.Project.PropertyGroup.Version
+if ($taskVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version.' }
+if (!$Directory) { $Directory = Join-Path $taskRoot "artifacts\releases\$taskVersion" }
 $Directory = [IO.Path]::GetFullPath($Directory)
-$taskDiagnostics = Join-Path $taskRoot 'artifacts\diagnostics'
+$taskDiagnostics = Join-Path $taskRoot "artifacts\diagnostics\install-smoke-$taskVersion"
 New-Item -ItemType Directory -Path $taskDiagnostics -Force | Out-Null
 $taskUninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{2D48DE33-FB4A-4C21-89D2-93A600C89D91}_is1'
 if (Test-Path -LiteralPath $taskUninstallKey) { throw 'Existing PC Watt installation detected; preserve it instead of running an isolated install test.' }
@@ -15,7 +18,7 @@ $taskId = [Guid]::NewGuid().ToString('N')
 $taskInstallDirectory = Join-Path ([IO.Path]::GetTempPath()) ('PCWatt-InstallSmoke-' + $taskId)
 $taskSetup = Join-Path ([IO.Path]::GetTempPath()) ('PCWatt-SetupSmoke-' + $taskId + '.exe')
 # Ordinary fresh file creation, as with a browser download. No ACL/integrity changes.
-[IO.File]::WriteAllBytes($taskSetup, [IO.File]::ReadAllBytes((Join-Path $Directory 'PCWatt-0.1.0-Setup-win-x64.exe')))
+[IO.File]::WriteAllBytes($taskSetup, [IO.File]::ReadAllBytes((Join-Path $Directory "PCWatt-$taskVersion-Setup-win-x64.exe")))
 $taskUninstalled = $false
 try {
     $taskInstallLog = Join-Path $taskDiagnostics 'installer-smoke-install.log'
@@ -36,7 +39,7 @@ try {
     if (!$taskApp.WaitForExit(30000)) { throw 'Installed package check exceeded 30 seconds.' }
     if ($taskApp.ExitCode -ne 0) { throw "Installed app check failed: $($taskApp.ExitCode)" }
     $taskCheck = Get-Content -LiteralPath $taskReport -Raw | ConvertFrom-Json
-    if (!$taskCheck.selfContained -or !$taskCheck.runtimeFromAppDirectory -or !$taskCheck.sqlite -or $taskCheck.userDataTouched -or $taskCheck.version -ne '0.1.0.0') { throw 'Self-contained runtime / SQLite / version check failed.' }
+    if (!$taskCheck.selfContained -or !$taskCheck.runtimeFromAppDirectory -or !$taskCheck.sqlite -or $taskCheck.userDataTouched -or $taskCheck.version -ne "$taskVersion.0") { throw 'Self-contained runtime / SQLite / version check failed.' }
     $taskUninstallLog = Join-Path $taskDiagnostics 'installer-smoke-uninstall.log'
     $taskUninstall = Start-Process -FilePath (Join-Path $taskInstallDirectory 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/LOG="' + $taskUninstallLog + '"')) -WindowStyle Hidden -Wait -PassThru
     if ($taskUninstall.ExitCode -ne 0 -or (Test-Path -LiteralPath $taskUninstallKey) -or (Test-Path -LiteralPath (Join-Path $taskInstallDirectory 'PCWatt.App.exe'))) { throw 'Uninstall did not finish cleanly.' }
