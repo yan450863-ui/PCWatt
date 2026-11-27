@@ -1,6 +1,6 @@
 # Windows 发布构建
 
-运行 `Build-Release.ps1`，生成自包含 x64 应用目录、单 EXE 安装包、解压 ZIP、使用说明和 SHA256SUMS.txt。默认输出 artifacts/releases/<Directory.Build.props 中的版本>/，已有发布目录不会被覆盖。完整文件列表及验证在对应发布记录中。
+运行 `Build-Release.ps1`，生成自包含 x64 应用目录、单 EXE 安装包、解压 ZIP、使用说明和 SHA256SUMS.txt。版本支持 `主.次.修订` 及带 `-` 的预览标记；安装程序文件版本仍使用前三段数值版本。默认输出 artifacts/releases/<Directory.Build.props 中的版本>/，已有发布目录不会被覆盖。完整文件列表及验证在对应发布记录中。
 
 需要 Windows、.NET 10 SDK 和官方 Inno Setup 7.1.0。编译器可从 [官方页面](https://jrsoftware.org/isdl.php) 获取，数字签名发布者为 Pyrsys B.V.；使用官方 `/PORTABLE=1 /CURRENTUSER` 模式可把构建工具解压到项目 artifacts/tools/inno-7.1.0，不修改文件关联。也可通过 `-Compiler` 指定已有 ISCC.exe。
 

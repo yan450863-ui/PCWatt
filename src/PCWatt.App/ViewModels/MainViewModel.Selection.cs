@@ -20,8 +20,8 @@ public sealed partial class MainViewModel
     public string CompactDataBadge => IsSimulated ? "模拟数据" : FocusedChannel is null || !CurrentSourceReadable ? "暂无数据" : FocusedChannel.IsEstimated ? "估算" :
         FocusedChannel is { Kind: PowerComponentKind.Gpu, IsPrimary: false } ? "局部读数" : "传感器读数";
     public string CompactPowerHint => !IsSampling ? "已暂停 · 暂停时段不补算" : ErrorMessage.Length > 0 ? "读取中断 · 正在重试" :
-        SelectedCategoryKey == "cpu" && HardwareStatus.Cpu.State != HardwareReadinessState.Ready ? HardwareStatus.Cpu.Summary :
-        SelectedCategoryKey == "whole" && HardwareStatus.WholePc.State != HardwareReadinessState.Ready ? HardwareStatus.WholePc.Summary :
+        HasHardwareChannels && SelectedCategoryKey == "cpu" && HardwareStatus.Cpu.State != HardwareReadinessState.Ready ? HardwareStatus.Cpu.Summary :
+        HasHardwareChannels && SelectedCategoryKey == "whole" && HardwareStatus.WholePc.State != HardwareReadinessState.Ready ? HardwareStatus.WholePc.Summary :
         Latest is null ? "等待首次读数" : !Fresh ? "读数已过期 · 等待更新" :
         !CurrentSourceReadable || !Latest.HasUsablePower ? "暂不可读 · 未按零计算" :
         IsSimulated ? "演示数据，非真实测量" : IsWholePcView ? FocusedChannel?.Scope == "主机 + 外设" ? "主机 + 外设估算" : FocusedChannel?.IsEstimated == true ? "主机估算 · 不含独立供电外设" : "电源输入读数 · 不含独立供电外设" :

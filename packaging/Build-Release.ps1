@@ -6,7 +6,8 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 [xml]$taskProps = Get-Content -LiteralPath (Join-Path $taskRoot 'Directory.Build.props')
 $taskVersion = [string]$taskProps.Project.PropertyGroup.Version
-if ($taskVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version.' }
+if ($taskVersion -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid release version.' }
+$taskFileVersion = ([regex]::Match($taskVersion, '^\d+\.\d+\.\d+').Value) + '.0'
 if (!$OutputDirectory) { $OutputDirectory = Join-Path $taskRoot "artifacts\releases\$taskVersion" }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $OutputDirectory) { throw "Preserve existing release: $OutputDirectory" }
@@ -19,7 +20,7 @@ try {
     & dotnet publish src/PCWatt.App/PCWatt.App.csproj --artifacts-path (Join-Path $taskRoot "artifacts\build-package-$taskVersion") -c Release -r win-x64 --self-contained true -p:RuntimeFrameworkVersion=10.0.12 -p:PublishTrimmed=false -p:PublishSingleFile=false -p:DebugSymbols=false -p:DebugType=None -o $taskPayload
     if ($LASTEXITCODE -ne 0) { throw 'Application publish failed.' }
     Copy-Item -LiteralPath 'docs\INSTALLATION.txt' -Destination (Join-Path $taskPayload '使用说明.txt')
-    & $Compiler ("/DAppVersion=$taskVersion") ("/DPayloadDir=$taskPayload") ("/DReleaseDir=$OutputDirectory") 'packaging\PCWatt.iss'
+    & $Compiler ("/DAppVersion=$taskVersion") ("/DAppFileVersion=$taskFileVersion") ("/DPayloadDir=$taskPayload") ("/DReleaseDir=$OutputDirectory") 'packaging\PCWatt.iss'
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
     $taskZip = Join-Path $OutputDirectory "PCWatt-$taskVersion-win-x64.zip"
     Compress-Archive -Path (Join-Path $taskPayload '*') -DestinationPath $taskZip -CompressionLevel Optimal

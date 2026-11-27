@@ -3,7 +3,8 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 [xml]$taskProps = Get-Content -LiteralPath (Join-Path $taskRoot 'Directory.Build.props')
 $taskVersion = [string]$taskProps.Project.PropertyGroup.Version
-if ($taskVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version.' }
+if ($taskVersion -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid release version.' }
+$taskFileVersion = ([regex]::Match($taskVersion, '^\d+\.\d+\.\d+').Value) + '.0'
 if (!$Directory) { $Directory = Join-Path $taskRoot "artifacts\releases\$taskVersion" }
 $Directory = [IO.Path]::GetFullPath($Directory)
 $taskDiagnostics = Join-Path $taskRoot "artifacts\diagnostics\install-smoke-$taskVersion"
@@ -39,7 +40,7 @@ try {
     if (!$taskApp.WaitForExit(30000)) { throw 'Installed package check exceeded 30 seconds.' }
     if ($taskApp.ExitCode -ne 0) { throw "Installed app check failed: $($taskApp.ExitCode)" }
     $taskCheck = Get-Content -LiteralPath $taskReport -Raw | ConvertFrom-Json
-    if (!$taskCheck.selfContained -or !$taskCheck.runtimeFromAppDirectory -or !$taskCheck.sqlite -or $taskCheck.userDataTouched -or $taskCheck.version -ne "$taskVersion.0") { throw 'Self-contained runtime / SQLite / version check failed.' }
+    if (!$taskCheck.selfContained -or !$taskCheck.runtimeFromAppDirectory -or !$taskCheck.sqlite -or $taskCheck.userDataTouched -or $taskCheck.version -ne $taskFileVersion) { throw 'Self-contained runtime / SQLite / version check failed.' }
     $taskUninstallLog = Join-Path $taskDiagnostics 'installer-smoke-uninstall.log'
     $taskUninstall = Start-Process -FilePath (Join-Path $taskInstallDirectory 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/LOG="' + $taskUninstallLog + '"')) -WindowStyle Hidden -Wait -PassThru
     if ($taskUninstall.ExitCode -ne 0 -or (Test-Path -LiteralPath $taskUninstallKey) -or (Test-Path -LiteralPath (Join-Path $taskInstallDirectory 'PCWatt.App.exe'))) { throw 'Uninstall did not finish cleanly.' }

@@ -1,6 +1,9 @@
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
+#ifndef AppFileVersion
+  #define AppFileVersion "0.1.0.0"
+#endif
 #ifndef PayloadDir
   #error PayloadDir is required
 #endif
@@ -38,7 +41,7 @@ SolidCompression=yes
 CloseApplications=no
 RestartApplications=no
 Uninstallable=yes
-VersionInfoVersion={#AppVersion}.0
+VersionInfoVersion={#AppFileVersion}
 VersionInfoDescription=PC Watt 安装程序
 VersionInfoProductName=PC Watt
 
