@@ -1,9 +1,9 @@
 # PC Watt
 
-- 项目版本：0.3.3-preview.2（发布验证通过，待 GitHub 同步）
+- 项目版本：0.3.3-preview.2（已公开预览版）
 - 最近实质修改日期：2026-11-28
 - 公开仓库：https://github.com/yan450863-ui/PCWatt
-- 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.3.3-preview.1
+- 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.3.3-preview.2
 
 ## 项目简介
 
@@ -11,11 +11,13 @@
 
 ## 当前进度
 
+- 2026-11-28 已发布 0.3.3-preview.2，标签指向源码提交 `eab4eca0e0c77adeffe79e0e6b834a09709d7069`；348 项 Release 测试、隔离安装/卸载、自带运行时和 SQLite 检查通过，ZIP 无个人数据，四个附件远端校验一致。见 [发布验证](docs/VALIDATION-GITHUB-0.3.3-preview.2.md)。旧构建与预览共 23 项、约 1.26 GB 已保留归档，清单在 `废弃文件/2026-11-28/整理清单.md`。
+
 - 2026-11-28 已完成历史数据一致性备份及旧备份比对，未发现旧记录丢失；“今日”在午夜后按新日期累计。独立备份位于 `历史数据/`，核查报告与校验清单在其日期子目录；旧构建与过期预览归入 `废弃文件/2026-11-28/`，两目录均不提交 GitHub。详细本机记录仅保存在这些本地目录。
 
 - 2026-11-28 按用户要求将默认窗口由 1440×980 缩小为 1120×800，居中打开；最小尺寸仍为 960×700，可自由缩放。Release 构建与现有窗口渲染测试通过；运行中的旧实例保留，根入口已切至独立构建 artifacts/build-ui-compact，从托盘退出旧实例后重新启动生效。
 
-- 2026-11-28 已按用户确认的方案 B 落地深墨绿侧栏、浅灰工作区、深绿电费卡与白色功率/图表面板；删除页头副标题、重复标题和宣传性说明，部件选择器保留一处。按钮、导航、设置控件的普通/悬停/选中/禁用与键盘焦点状态已统一，图表小字加深。Release 构建及 17 项针对性测试通过，子代理已检查默认、最小、多显卡、小时图与设置截图。根目录启动入口已对应新版构建，0.3.3-preview.2 安装包与 ZIP 已验证，待 GitHub 同步。[实现预览](artifacts/ui-research-2026-11-27/pcwatt-direction-b-implemented-2026-11-28.jpg)、[原效果图](artifacts/ui-research-2026-11-27/pcwatt-direction-b-v1-original.png)、[验证记录](docs/VALIDATION-UI-DIRECTION-B.md)。截图使用固定测试数据。
+- 2026-11-28 已按用户确认的方案 B 落地深墨绿侧栏、浅灰工作区、深绿电费卡与白色功率/图表面板；删除页头副标题、重复标题和宣传性说明，部件选择器保留一处。按钮、导航、设置控件的普通/悬停/选中/禁用与键盘焦点状态已统一，图表小字加深。Release 构建及 17 项针对性测试通过，子代理已检查默认、最小、多显卡、小时图与设置截图。根目录启动入口已对应新版构建，0.3.3-preview.2 已公开发布，四个附件的服务端 SHA256 已核对。[实现预览](artifacts/ui-research-2026-11-27/pcwatt-direction-b-implemented-2026-11-28.jpg)、[原效果图](artifacts/ui-research-2026-11-27/pcwatt-direction-b-v1-original.png)、[验证记录](docs/VALIDATION-UI-DIRECTION-B.md)。截图使用固定测试数据。
 - 0.3.3-preview.1 已发布为公开预览版；加入 PawnIO 故障分类、CPU/显卡/整机状态显示、手动重新检测及诊断复制。驱动安装仍由用户主动打开官方页面并自行完成；检测不自动安装驱动、不上传信息，也不增加采样循环。全量 Release 测试 348 项通过，安装包与 ZIP 检查通过；详见[硬件诊断验证](docs/VALIDATION-HARDWARE-DIAGNOSTICS-2026-11-27.md)与[GitHub 发布记录](docs/VALIDATION-GITHUB-0.3.3-preview.1.md)。
 - 第一至第三阶段已实现：工程骨架、生命周期与设置、人民币电价历史和启动通知。
 - 当前界面采用方案 B：侧栏 `#18352E`、工作区 `#EDF1EF`、电费卡 `#0D5843`、强调色 `#0C6B4E`，保留双栏大数字、全宽趋势图、硬件状态弹层、自绘标题栏、Windows 11 圆角及底部状态栏。此前冷灰浅色版本的 QA 记录仍保留在 `design-qa.md`。
