@@ -69,7 +69,7 @@ public sealed partial class PowerTrend
         var axisScale = step < 0.01 ? 1000d : 1d;
         step = Math.Ceiling(step * axisScale * 100) / (axisScale * 100);
         var maximum = step * 4;
-        var muted = Brush("#939D99");
+        var muted = Brush("#52625A");
         Label(dc, axisScale == 1 ? "度（kWh）" : "瓦时（Wh）", new(0, 0), muted, 9);
         var legend = buckets.SelectMany(DisplayContributions).Select(p => p.Part).Distinct().OrderBy(ContributionOrder).ToArray();
         var legendX = plot.Left + 18;
@@ -81,7 +81,7 @@ public sealed partial class PowerTrend
         }
         var lineLegendX = Math.Max(legendX + 6, plot.Right - 95);
         dc.DrawLine(new Pen(Brush("#287F77"), 1.6), new(lineLegendX, 7), new(lineLegendX + 16, 7));
-        Label(dc, "总耗电", new(lineLegendX + 22, 0), Brush("#607B76"), 9);
+        Label(dc, "总耗电", new(lineLegendX + 22, 0), Brush("#52625A"), 9);
         for (var i = 0; i <= 4; i++)
         {
             var y = plot.Bottom - plot.Height * i / 4;

@@ -6,6 +6,8 @@
 *.suo
 TestResults/
 artifacts/
+历史数据/
+废弃文件/
 *.db
 *.db-shm
 *.db-wal

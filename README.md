@@ -1,16 +1,16 @@
 # PC Watt
 
-**看清电脑用了多少电，花了多少钱。**
+
 
 PC Watt 是一个面向 Windows 的开源功耗与电费查看器。填写自己的人民币电价后，就能查看已记录用电对应的所选时段的估算电费，也能切换 CPU、显卡、外设和其他部件的耗电图表。
 
 本地保存，无账号、无广告，不上传使用记录。界面保持简单，关闭后留在托盘继续记录。
 
-**[下载安装包（推荐）](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Setup-win-x64.exe)** · [完整 ZIP](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-win-x64.zip) · [SHA256](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/SHA256SUMS.txt) · [中文安装说明](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Readme-zh-CN.txt) · [问题反馈](https://github.com/yan450863-ui/PCWatt/issues) · [使用说明](docs/INSTALLATION.txt)
+**[下载安装包（推荐）](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/PCWatt-0.3.3-preview.2-Setup-win-x64.exe)** · [完整 ZIP](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/PCWatt-0.3.3-preview.2-win-x64.zip) · [SHA256](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/SHA256SUMS.txt) · [中文安装说明](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/PCWatt-0.3.3-preview.2-Readme-zh-CN.txt) · [问题反馈](https://github.com/yan450863-ui/PCWatt/issues) · [使用说明](docs/INSTALLATION.txt)
 
-当前版本：**0.3.3-preview.1（公开预览版）**。Windows 10 1809+ / Windows 11，x64。安装包已包含 .NET 10，不用额外安装运行环境。查看[本版更新说明](docs/releases/0.3.3-preview.1.md)。
+当前版本：**0.3.3-preview.2（公开预览版）**。Windows 10 1809+ / Windows 11，x64。安装包已包含 .NET 10，不用额外安装运行环境。查看[本版更新说明](docs/releases/0.3.3-preview.2.md)。
 
-![PC Watt 界面预览，图中为测试数据，非真实测量](docs/images/overview-fixture.png)
+![PC Watt 界面预览，图中为测试数据，非真实测量](docs/images/overview-direction-b-fixture.png)
 
 *界面预览使用明确标注的测试数据，下载版本会尝试读取本机可用硬件。*
 
@@ -29,13 +29,13 @@ PC Watt 是一个面向 Windows 的开源功耗与电费查看器。填写自己
 
 ## 开始使用
 
-1. 下载 [PCWatt-0.3.3-preview.1-Setup-win-x64.exe](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Setup-win-x64.exe)，双击安装。
+1. 下载 [PCWatt-0.3.3-preview.2-Setup-win-x64.exe](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/PCWatt-0.3.3-preview.2-Setup-win-x64.exe)，双击安装。
 2. 打开 PC Watt，在设置里填写自己的电价（元/度）。
 3. 等待可用硬件读数并开始记录。需要完全退出时，从右下角托盘菜单选择“退出”。
 
 安装本身不需要管理员权限。默认启用登录自启动和启动时请求完整硬件读取，可分别在设置中关闭；完整硬件读取使用正常 Windows UAC 授权，取消后仍可记录可用项目。
 
-也提供 [PCWatt-0.3.3-preview.1-win-x64.zip](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-win-x64.zip)：解压完整目录后运行 `PCWatt.App.exe`。它同样使用本地用户数据目录，不是数据随 U 盘移动的便携模式。不要只复制 EXE 而丢掉其余文件。
+也提供 [PCWatt-0.3.3-preview.2-win-x64.zip](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.2/PCWatt-0.3.3-preview.2-win-x64.zip)：解压完整目录后运行 `PCWatt.App.exe`。它同样使用本地用户数据目录，不是数据随 U 盘移动的便携模式。不要只复制 EXE 而丢掉其余文件。
 
 当前安装包未作代码签名，Windows 可能显示“未知发布者”或信誉提示。请认准本仓库 Releases，并使用附件 `SHA256SUMS.txt` 核对下载内容。
 
@@ -75,7 +75,11 @@ dotnet test PCWatt.sln -c Release --no-build --no-restore
 - `packaging/`：EXE 安装包构建与 GitHub 发布工具。
 - `docs/`：使用说明、[轻量优化与备份验证](docs/VALIDATION-LEAN-BACKUP.md)、[图表顺序与设置精简验证](docs/VALIDATION-UI-ORDER.md)、[外设、电源与波浪图验证](docs/VALIDATION-PERIPHERALS-WAVES.md)、[历史与传感器验证](docs/VALIDATION-HISTORY-SENSORS.md)、[开发说明](docs/DEVELOPMENT.md)、[需求](docs/PRODUCT-REQUIREMENTS.md)、[路线](docs/ROADMAP.md)与验证记录。
 - `licenses/`：第三方许可证、声明及需附带的模块源码。
-- `artifacts/`：本地构建、测试、备份和发布产物，不上传源码仓库。
+- `artifacts/`：本地构建、测试、诊断和发布产物，不上传源码仓库。
+- `历史数据/`：本机历史备份、设置副本与核查记录，按日期保存，不上传 GitHub。
+- `废弃文件/`：旧构建与过期预览的保留归档，包含整理清单，不上传 GitHub。
+
+方案 B 界面改版的预览、检查范围与运行入口见 [界面验证记录](docs/VALIDATION-UI-DIRECTION-B.md)。
 
 本地工程入口为根目录 `启动.cmd`；分发安装版使用桌面或开始菜单快捷方式。打包方法见 [packaging/README.md](packaging/README.md)。
 

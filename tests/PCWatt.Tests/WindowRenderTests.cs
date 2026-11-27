@@ -265,6 +265,43 @@ public sealed class WindowRenderTests
                     var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                     using var file = File.Create(Path.Combine(directory, "simple-" + key + "-fixture.png")); encoder.Save(file);
                 }
+                simpleModel.SelectCategoryCommand.ExecuteAsync("gpu").GetAwaiter().GetResult();
+                Assert.IsTrue(simpleModel.HasDeviceChoices, "GPU 视图应提供两个设备选项。");
+                var gpuPanel = (FrameworkElement)simpleWindow.Content;
+                gpuPanel.Measure(new Size(944, 660)); gpuPanel.Arrange(new Rect(0, 0, 944, 660)); gpuPanel.UpdateLayout();
+                var deviceSelector = (FrameworkElement)simpleWindow.FindName("DeviceSelector");
+                var renderedDevices = Descendants<System.Windows.Controls.RadioButton>(deviceSelector)
+                    .Where(r => r.Visibility == Visibility.Visible && r.ActualWidth > 0 && r.ActualHeight > 0).ToArray();
+                Assert.HasCount(2, renderedDevices, "GPU 视图应同时显示独立显卡和集成显卡选项。");
+                var selectorBounds = new Rect(0, 0, deviceSelector.ActualWidth, deviceSelector.ActualHeight);
+                foreach (var device in renderedDevices)
+                {
+                    var deviceBounds = new Rect(device.TranslatePoint(new Point(0, 0), deviceSelector), device.RenderSize);
+                    Assert.IsTrue(selectorBounds.Contains(deviceBounds),
+                        $"设备选项不得超出选择区：{deviceBounds}，选择区 {selectorBounds}。");
+                }
+                Assert.IsTrue(deviceSelector.ActualHeight <= 40, $"设备选择控件不得在最小窗口中换行，实际高度 {deviceSelector.ActualHeight}。");
+                var gpuChart = (FrameworkElement)simpleWindow.FindName("Trend");
+                Assert.IsTrue(gpuChart.TranslatePoint(new Point(0, gpuChart.ActualHeight), gpuPanel).Y < 630,
+                    "多设备选择在最小窗口中不应把功耗曲线挤出底部。");
+                var selectedCategory = Descendants<System.Windows.Controls.RadioButton>((FrameworkElement)simpleWindow.FindName("CategorySelector"))
+                    .Single(r => r.IsChecked == true);
+                Assert.AreEqual("显卡", selectedCategory.Content?.ToString());
+                var selectedLabel = Descendants<System.Windows.Controls.TextBlock>(selectedCategory).Single(t => t.Text == "显卡");
+                Assert.AreEqual(Colors.White, ((SolidColorBrush)selectedLabel.Foreground).Color, "选中分段文字应继承白色前景。");
+                var overviewButton = Descendants<System.Windows.Controls.Button>(gpuPanel)
+                    .Single(b => Descendants<System.Windows.Controls.TextBlock>(b).Any(t => t.Text == "概览"));
+                var selectedIndicator = overviewButton.Template.FindName("Indicator", overviewButton) as System.Windows.Controls.Border
+                    ?? throw new AssertFailedException("侧栏导航模板应包含选中指示条。");
+                Assert.AreEqual(Visibility.Visible, selectedIndicator.Visibility, "当前概览导航应显示选中指示条。");
+                var gpuBitmap = new RenderTargetBitmap(944, 660, 96, 96, PixelFormats.Pbgra32); gpuBitmap.Render(gpuPanel);
+                var gpuLabel = new DrawingVisual();
+                using (var draw = gpuLabel.RenderOpen())
+                    draw.DrawText(new FormattedText("界面预览 · 测试数据，非真实测量", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"), FlowDirection.LeftToRight,
+                        new Typeface("Microsoft YaHei UI"), 11, Brushes.Gold, 1), new Point(770, 640));
+                gpuBitmap.Render(gpuLabel);
+                var gpuEncoder = new PngBitmapEncoder(); gpuEncoder.Frames.Add(BitmapFrame.Create(gpuBitmap));
+                using (var gpuFile = File.Create(Path.Combine(directory, "simple-gpu-minimum-fixture.png"))) gpuEncoder.Save(gpuFile);
                 simpleWindow.Close();
                 var easyModel = HardwareViewModelTests.Create(new HardwareViewModelTests.FakeChannelDashboard(true));
                 var easyPreferences = new PCWatt.Infrastructure.Configuration.AppSettings();

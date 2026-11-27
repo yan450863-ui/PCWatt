@@ -1,5 +1,7 @@
 # PCWatt 界面重置 Design QA
 
+本文件保留 2026-11-27 冷灰浅色版本的验收记录。2026-11-28 已落地用户确认的深墨绿侧栏方案 B，当前界面与预览以 [最新验证记录](docs/VALIDATION-UI-DIRECTION-B.md) 为准。
+
 **Comparison Target**
 
 - 参考视觉：`docs/images/ui-reference-2026-11-27.png`

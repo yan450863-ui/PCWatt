@@ -94,7 +94,7 @@ public sealed partial class PowerTrend
             if (isPart) dc.DrawRoundedRectangle(Brush(ContributionColor(parts[i - 2].Part)), null,
                 new Rect(left + 14, top + 15 + i * spacing, 6, 6), 2, 2);
             Label(dc, rows[i], new(left + (isPart ? 26 : 14), top + 9 + i * spacing),
-                Brush(i == 1 ? "#285F55" : i == 0 ? "#7C8D86" : "#53645D"), Math.Min(i == 1 ? 12 : 10.5, spacing - 1));
+                Brush(i == 1 ? "#285F55" : i == 0 ? "#52625A" : "#53645D"), Math.Min(i == 1 ? 12 : 10.5, spacing - 1));
         }
     }
 }

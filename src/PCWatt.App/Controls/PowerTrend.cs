@@ -72,7 +72,7 @@ public sealed partial class PowerTrend : FrameworkElement
         // 纵轴取“好看”的步长，避免出现 0 / 6 / 13 / 19 / 25 这类刻度。
         var step = NiceStep(peak / 4);
         var maximum = step * 4;
-        var muted = Brush("#7E8983");
+        var muted = Brush("#52625A");
         for (var i = 0; i <= 4; i++)
         {
             var y = plot.Bottom - plot.Height * i / 4;
