@@ -15,7 +15,7 @@ public sealed partial class PowerTrend
     public static readonly DependencyProperty TimeZoneProperty = DependencyProperty.Register(nameof(TimeZone), typeof(TimeZoneInfo), typeof(PowerTrend),
         new FrameworkPropertyMetadata(TimeZoneInfo.Local, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty HistoryColorProperty = DependencyProperty.Register(nameof(HistoryColor), typeof(string), typeof(PowerTrend),
-        new FrameworkPropertyMetadata("#4F86C6", FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata("#0C6B4E", FrameworkPropertyMetadataOptions.AffectsRender));
     public string HistoryColor { get => (string)GetValue(HistoryColorProperty); set => SetValue(HistoryColorProperty, value); }
     public EnergyHistory? History { get => (EnergyHistory?)GetValue(HistoryProperty); set => SetValue(HistoryProperty, value); }
     public bool IsHistoryMode { get => (bool)GetValue(IsHistoryModeProperty); set => SetValue(IsHistoryModeProperty, value); }
@@ -24,7 +24,7 @@ public sealed partial class PowerTrend
     public static string ContributionName(EnergyPart part) => part switch
     { EnergyPart.Cpu => "CPU", EnergyPart.Gpu => "显卡", EnergyPart.Memory => "其他", EnergyPart.Storage => "其他", EnergyPart.Other => "其他", EnergyPart.Peripheral => "外设", _ => "未拆分" };
     public static string ContributionColor(EnergyPart part) => part switch
-    { EnergyPart.Cpu => "#4F86C6", EnergyPart.Gpu => "#D6A066", EnergyPart.Memory => "#65ACA3", EnergyPart.Storage => "#65ACA3", EnergyPart.Other => "#65ACA3", EnergyPart.Peripheral => "#A08DBD", _ => "#B8BDC3" };
+    { EnergyPart.Cpu => "#4F86C6", EnergyPart.Gpu => "#D69A58", EnergyPart.Memory => "#4E9A86", EnergyPart.Storage => "#4E9A86", EnergyPart.Other => "#4E9A86", EnergyPart.Peripheral => "#9A83BE", _ => "#AEB8B2" };
 
     public static string HistoryTooltip(EnergyBucket bucket, TimeZoneInfo zone)
     {
@@ -92,7 +92,7 @@ public sealed partial class PowerTrend
         var axisEnd = History is null ? axisStart.AddDays(1) : AxisEnd(History, TimeZone);
         double X(DateTimeOffset t) => plot.Left + (t - axisStart).TotalSeconds / (axisEnd - axisStart).TotalSeconds * plot.Width;
         double Center(EnergyBucket b) => (X(b.Energy.Start) + X(b.Energy.End)) / 2;
-        var lineColor = History?.Source is null ? "#287F77" : HistoryColor;
+        var lineColor = History?.Source is null ? "#0C6B4E" : HistoryColor;
         var trendPen = new Pen(Brush(lineColor), 2.1) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         foreach (var run in HistoryLineRuns(buckets))
         {
@@ -144,7 +144,7 @@ public sealed partial class PowerTrend
         dc.DrawRectangle(Brush("#0B287F77"), null, new Rect(X(selected.Energy.Start), plot.Top, Math.Max(1, X(selected.Energy.End) - X(selected.Energy.Start)), plot.Height));
         dc.DrawLine(new Pen(Brush("#ACC9C3"), 0.8) { DashStyle = DashStyles.Dash }, new(lineX, plot.Top), new(lineX, plot.Bottom));
         if (selected.Energy.CoveredDuration > TimeSpan.Zero)
-            dc.DrawEllipse(Brush("#FFFFFF"), new Pen(Brush("#287F77"), 1.8),
+            dc.DrawEllipse(Brush("#FFFFFF"), new Pen(Brush(lineColor), 1.8),
                 new(lineX, plot.Bottom - (double)selected.Energy.KilowattHours / maximum * plot.Height), 4, 4);
         DrawHistoryHover(dc, selected, _hoverPoint);
     }

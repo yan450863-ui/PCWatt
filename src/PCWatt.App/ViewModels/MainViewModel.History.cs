@@ -9,7 +9,7 @@ public sealed partial class MainViewModel
     private readonly IEnergyHistoryService? _historyService;
     public bool IsHistoryMode => _historyService is not null;
     public TimeZoneInfo ChartTimeZone => _zone;
-    public string ChartColor => SelectedCategoryKey switch { "gpu" => "#D6A066", "peripherals" => "#A08DBD", "other" => "#65ACA3", _ => "#4F86C6" };
+    public string ChartColor => SelectedCategoryKey switch { "gpu" => "#D69A58", "peripherals" => "#9A83BE", "other" => "#4E9A86", _ => "#0C6B4E" };
     public EnergyHistory? HistoryData { get; private set; }
     public string ChartRangeLabel => !IsHistoryMode ? "最近 10 分钟" : _period switch
     {

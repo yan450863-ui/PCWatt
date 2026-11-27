@@ -26,7 +26,7 @@ public sealed partial class PowerTrend : FrameworkElement
     public bool IsRecording { get => (bool)GetValue(IsRecordingProperty); set => SetValue(IsRecordingProperty, value); }
     public int MaximumGapSeconds { get; set; } = 90;
     public PowerTrend() { IsVisibleChanged += (_, _) => UpdateMotion(); ClipToBounds = true; }
-    private IReadOnlyList<PowerChartSeries> DisplaySeries => Series ?? [new("legacy", "功率", "#0F766E", Samples ?? [])];
+    private IReadOnlyList<PowerChartSeries> DisplaySeries => Series ?? [new("legacy", "功率", "#0C6B4E", Samples ?? [])];
     private static void DataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var chart = (PowerTrend)d;
@@ -72,23 +72,23 @@ public sealed partial class PowerTrend : FrameworkElement
         // 纵轴取“好看”的步长，避免出现 0 / 6 / 13 / 19 / 25 这类刻度。
         var step = NiceStep(peak / 4);
         var maximum = step * 4;
-        var muted = Brush("#8A938D");
+        var muted = Brush("#7E8983");
         for (var i = 0; i <= 4; i++)
         {
             var y = plot.Bottom - plot.Height * i / 4;
-            dc.DrawLine(new Pen(Brush(i == 0 ? "#D2CABA" : "#E2DBCC"), 0.8) { DashStyle = i == 0 ? null : new DashStyle([3, 6], 0) }, new(plot.Left, y), new(plot.Right, y));
+            dc.DrawLine(new Pen(Brush(i == 0 ? "#CCD6CF" : "#E4E9E6"), 0.8) { DashStyle = i == 0 ? null : new DashStyle([3, 6], 0) }, new(plot.Left, y), new(plot.Right, y));
             Label(dc, (step * i).ToString(step >= 1 ? "0" : "0.#"), new(0, y - 7), muted, 10);
         }
         if (points.Length == 0)
         {
-            Label(dc, "等待功率记录", new(plot.Left + 20, plot.Top + plot.Height / 2 - 12), Brush("#57605B"), 13);
+            Label(dc, "等待功率记录", new(plot.Left + 20, plot.Top + plot.Height / 2 - 12), Brush("#505C56"), 13);
             Label(dc, "有记录后自动显示曲线", new(plot.Left + 20, plot.Top + plot.Height / 2 + 13), muted, 10);
             return;
         }
         if (!points.Any(p => p.HasUsablePower))
         {
             // 有样本但都不带可用功率时，明确说明，避免看起来像“测得零瓦”。
-            Label(dc, "这段时间没有可用功率样本", new(plot.Left + 20, plot.Top + plot.Height / 2 - 12), Brush("#57605B"), 13);
+            Label(dc, "这段时间没有可用功率样本", new(plot.Left + 20, plot.Top + plot.Height / 2 - 12), Brush("#505C56"), 13);
             Label(dc, "未知不补零、不估算，恢复可读后自动接上", new(plot.Left + 20, plot.Top + plot.Height / 2 + 13), muted, 10);
             return;
         }
@@ -130,10 +130,10 @@ public sealed partial class PowerTrend : FrameworkElement
         if (_hoverX is not { } x || x < plot.Left || x > plot.Right) return;
         var target = points.MinBy(s => Math.Abs(X(s) - x))!;
         var hover = X(target);
-        dc.DrawLine(new Pen(Brush("#B8AF9F"), 1) { DashStyle = DashStyles.Dash }, new(hover, plot.Top), new(hover, plot.Bottom));
+        dc.DrawLine(new Pen(Brush("#AEB8B2"), 1) { DashStyle = DashStyles.Dash }, new(hover, plot.Top), new(hover, plot.Bottom));
         var box = new Rect(Math.Clamp(hover - 150, plot.Left, Math.Max(plot.Left, plot.Right - 350)), plot.Top + 4, Math.Min(350, plot.Width), 30 + Math.Min(series.Length, 7) * 19);
-        dc.DrawRoundedRectangle(Brush("#FFFFFF"), new Pen(Brush("#D2CABA"), 1), box, 8, 8);
-        Label(dc, target.Timestamp.ToLocalTime().ToString("HH:mm:ss") + (series.Length == 1 ? " · 功率" : " · 各来源独立读数"), new(box.Left + 12, box.Top + 8), Brush("#57605B"), 10);
+        dc.DrawRoundedRectangle(Brush("#FFFFFF"), new Pen(Brush("#CCD6CF"), 1), box, 8, 8);
+        Label(dc, target.Timestamp.ToLocalTime().ToString("HH:mm:ss") + (series.Length == 1 ? " · 功率" : " · 各来源独立读数"), new(box.Left + 12, box.Top + 8), Brush("#505C56"), 10);
         for (var i = 0; i < Math.Min(series.Length, 7); i++)
         {
             var s = series[i];
