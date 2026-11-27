@@ -7,6 +7,7 @@ public enum PowerAvailability { Available, Unsupported, PermissionDenied, ReadFa
 public sealed record PowerChannel(string Id, string Name, string HardwareName, PowerComponentKind Kind,
     string Scope, PowerAvailability Availability, string? Detail = null, bool IsPrimary = false, bool IsEstimated = false)
 {
+    public HardwareAccessIssue? AccessIssue { get; init; }
     public bool IsSimulated => Kind == PowerComponentKind.Simulated;
     public string ScopeDescription => IsSimulated ? "模拟演示，非硬件测量" : Kind == PowerComponentKind.WholePc ?
         IsEstimated ? "整机估算 · 含估算假设，非墙插实测" : "整机功耗 · 未连接外部功率计" :

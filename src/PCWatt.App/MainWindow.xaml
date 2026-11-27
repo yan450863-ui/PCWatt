@@ -147,10 +147,10 @@
                                             Command="{Binding DataContext.SelectDeviceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Name}" />
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Border Grid.Row="2" Background="{StaticResource WarnSoft}" BorderBrush="{StaticResource WarnBorder}" BorderThickness="1" CornerRadius="10" Padding="14,7" Margin="0,0,0,10" Visibility="{Binding ShowCpuPermissionHelp, Converter={StaticResource VisibleWhenTrue}}">
+                                <Border Grid.Row="2" Background="{StaticResource WarnSoft}" BorderBrush="{StaticResource WarnBorder}" BorderThickness="1" CornerRadius="10" Padding="14,7" Margin="0,0,0,10" Visibility="{Binding ShowHardwareHelp, Converter={StaticResource VisibleWhenTrue}}">
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="启用 CPU 读取" Command="{Binding Settings.EnableCpuReadCommand}" Padding="12,6" Margin="12,0,0,0" />
-                                        <TextBlock Text="允许 Windows 授权后，可尝试读取 CPU 功耗。" Foreground="{StaticResource Warn}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5" />
+                                        <Button DockPanel.Dock="Right" Content="硬件检测" Command="{Binding ShowSettingsCommand}" Padding="12,6" Margin="12,0,0,0" />
+                                        <TextBlock Text="{Binding HardwareHelpMessage}" Foreground="{StaticResource Warn}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5" />
                                     </DockPanel>
                                 </Border>
 
@@ -333,6 +333,30 @@
                             <!-- ═══ 设置 ═══ -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsSettings, Converter={StaticResource VisibleWhenTrue}}">
                             <StackPanel DataContext="{Binding Settings}">
+                                <TextBlock Text="硬件检测" Style="{StaticResource SectionLabel}" />
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                            <TextBlock Text="CPU 功率" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding CpuHardwareStatus}" TextWrapping="Wrap" ToolTip="{Binding HardwareAccessStatus}" />
+                                            <TextBlock Grid.Row="1" Text="显卡功率" Style="{StaticResource Caption}" Margin="0,8,0,0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding GpuHardwareStatus}" TextWrapping="Wrap" Margin="0,8,0,0" ToolTip="{Binding HardwareStatus.Gpu.Detail}" />
+                                            <TextBlock Grid.Row="2" Text="整机记录" Style="{StaticResource Caption}" Margin="0,8,0,0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding WholePcHardwareStatus}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding HardwareAccessStatus}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                                        <TextBlock Text="{Binding WholePcHardwareDetail}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <Button Content="重新检测" Command="{Binding RecheckHardwareCommand}" Padding="12,6" Margin="0,0,8,8" />
+                                            <Button Content="复制诊断信息" Command="{Binding CopyHardwareDiagnosticsCommand}" Padding="12,6" Margin="0,0,8,8" />
+                                            <Button Content="以管理员身份重新启动" Command="{Binding EnableCpuReadCommand}" Padding="12,6" Margin="0,0,8,8" Visibility="{Binding CanRequestAdministrator, Converter={StaticResource VisibleWhenTrue}}" />
+                                            <Button Content="PawnIO 官方安装说明" Command="{Binding OpenDriverPageCommand}" Padding="12,6" Margin="0,0,8,8" Visibility="{Binding CanOpenDriverPage, Converter={StaticResource VisibleWhenTrue}}" />
+                                        </WrapPanel>
+                                        <TextBlock Text="{Binding HardwareFeedback}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
                                 <TextBlock Text="启动与后台" Style="{StaticResource SectionLabel}" />
                                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                                     <StackPanel>

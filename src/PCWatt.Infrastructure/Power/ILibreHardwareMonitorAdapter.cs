@@ -11,7 +11,10 @@ public interface ILibreHardwareMonitorAdapter : IDisposable
 }
 
 public sealed record HardwarePowerReading(string HardwareId, string HardwareName, PowerComponentKind Kind,
-    string SensorId, string SensorName, float? Watts, PowerAvailability Availability, string? Detail = null);
+    string SensorId, string SensorName, float? Watts, PowerAvailability Availability, string? Detail = null)
+{
+    public HardwareAccessIssue? AccessIssue { get; init; }
+}
 
 public sealed record HardwareTemperatureReading(string HardwareId, string HardwareName, PowerComponentKind Kind,
     string SensorName, float? Celsius);

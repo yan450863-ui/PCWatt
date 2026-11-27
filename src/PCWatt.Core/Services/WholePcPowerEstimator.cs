@@ -11,7 +11,7 @@ public static class WholePcPowerEstimator
         profile?.Validate();
         var id = profile?.SourceId ?? UnknownSourceId;
         decimal? watts = null;
-        var reason = "正在自动识别功率来源；请允许管理员授权以读取 CPU。缺少 CPU 功率时整机保持未知，不用零值补齐。";
+        var reason = profile is null ? HardwareReadiness.Evaluate(frame.Channels).WholePc.Detail : "";
         if (profile is not null)
         {
             var ids = new[] { profile.CpuSourceId }.Concat(profile.GpuSourceIds).ToArray();

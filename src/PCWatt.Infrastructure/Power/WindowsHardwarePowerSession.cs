@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -36,13 +35,14 @@ internal sealed class WindowsHardwarePowerSession : IHardwarePowerSession
         var deviceError = cpuAccessible ? 0 : Marshal.GetLastWin32Error();
         if (!cpuAccessible)
         {
+            var issue = PawnIoDiagnostics.DiagnoseFailure(deviceError);
             string name;
             using (var key = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0"))
                 name = (key?.GetValue("ProcessorNameString") as string)?.Trim() ?? "处理器";
             _cpuUnavailable = new("cpu", name, PowerComponentKind.Cpu, "cpu/unavailable", "Unavailable", null,
-                deviceError == 5 ? PowerAvailability.PermissionDenied : PowerAvailability.Unsupported,
-                deviceError == 5 ? "CPU 读取需要管理员授权。请选择“启用 CPU 读取”并允许 Windows 授权；取消后仍可记录其他硬件。" :
-                $"CPU 底层接口不可用（Win32 {deviceError}）。仅管理员身份不保证能读取；未安装驱动或生成替代数值。");
+                issue.State == HardwareReadinessState.PermissionRequired ? PowerAvailability.PermissionDenied :
+                issue.State == HardwareReadinessState.DriverMissing ? PowerAvailability.Unsupported : PowerAvailability.ReadFailed,
+                issue.Message) { AccessIssue = issue };
         }
         _computer = new Computer { IsCpuEnabled = cpuAccessible, IsGpuEnabled = true };
         try

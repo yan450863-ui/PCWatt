@@ -27,6 +27,7 @@ public partial class App : Application
     private bool _openRequested;
     private readonly CancellationTokenSource _notificationLifetime = new();
     private Task? _notificationTask;
+    private string? _lastHardwareDiagnostic;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -95,6 +96,7 @@ public partial class App : Application
                 () => (_preferences?.Current ?? settings) is { PeripheralsEnabled: true } current ? current.Peripherals : null), repository, settings.SamplingIntervalSeconds,
                 maximumIntegrationInterval: () => _preferences?.Current.MaximumIntegrationGapSeconds ?? settings.MaximumIntegrationGapSeconds,
                 discoverWhenPaused: true);
+            _sampling.StateChanged += OnHardwareStateChanged;
             if (settings.RecordingPaused) await _sampling.SetPausedAsync(true);
             var launcher = AutostartLauncherInstaller.LaunchPath(AppContext.BaseDirectory, directory);
             var autostart = new AutostartService(new CurrentUserAutostartStore(), launcher);
@@ -144,13 +146,16 @@ public partial class App : Application
                     {
                         knownPrices = await tariffs.ReadAsync();
                         await model.RefreshAsync(false, CancellationToken.None);
-                    }, () => dashboard.Channels,
+                    }, () => _sampling.Channels,
                     async () =>
                     {
                         if (WindowsLaunchEnvironment.GetIntegrityLevel() >= 0x3000) return;
                         var elevationLauncher = new AutostartLauncherInstaller(AppContext.BaseDirectory, directory).Install();
                         if (AdministratorLaunch.Request(elevationLauncher, false)) await ExitAsync();
-                    }, integrity >= 0x3000, dataActions.BackupAsync, dataActions.RestoreAsync);
+                    }, integrity >= 0x3000, dataActions.BackupAsync, dataActions.RestoreAsync,
+                    recheckHardware: () => Task.Run(_sampling.RecheckHardwareAsync),
+                    copyDiagnostics: Clipboard.SetText,
+                    openDriverPage: () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://pawnio.eu/") { UseShellExecute = true }));
                 _model = model;
                 if (_notificationStatus is not null) model.Settings.SetNotificationStatus(_notificationStatus);
                 if (_lastUiError is not null) model.ReportError(_lastUiError);
@@ -218,6 +223,21 @@ public partial class App : Application
         if (_exiting || Dispatcher.HasShutdownStarted) return;
         _ = Dispatcher.InvokeAsync(() => _model?.NotifyDisplayState());
     }
+    private void OnHardwareStateChanged(object? sender, EventArgs e)
+    {
+        if (_sampling is null || _exiting || Dispatcher.HasShutdownStarted) return;
+        var channels = _sampling.Channels;
+        if (channels.Count > 0)
+        {
+            var status = HardwareReadiness.Evaluate(channels);
+            var codes = string.Join(",", channels.Where(channel => channel.Availability != PCWatt.Core.Models.PowerAvailability.Disconnected &&
+                channel.AccessIssue?.NativeErrorCode is not null).Select(channel => channel.AccessIssue!.NativeErrorCode).Distinct());
+            var diagnostic = $"cpu={status.Cpu.State}; gpu={status.Gpu.State}; whole={status.WholePc.State}; win32={codes}; samplingError={_sampling.LastError is not null}";
+            if (Interlocked.Exchange(ref _lastHardwareDiagnostic, diagnostic) != diagnostic)
+                StartupDiagnostics.Write("hardware " + diagnostic);
+        }
+        _ = Dispatcher.InvokeAsync(() => _model?.NotifyHardwareStatus());
+    }
     private void ReleaseMainWindow()
     {
         if (MainWindow is not MainWindow window || _exiting) return;
@@ -259,6 +279,7 @@ public partial class App : Application
             return;
         }
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        if (_sampling is not null) _sampling.StateChanged -= OnHardwareStateChanged;
         if (_preferences is not null) _preferences.Changed -= OnPreferencesChanged;
         _windowSession?.Release();
         _windowSession = null;

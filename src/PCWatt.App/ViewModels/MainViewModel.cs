@@ -130,10 +130,10 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public string PowerHeading => IsWholePcView ? "总功耗" : SelectedCategoryLabel + "功率";
     public string ChartHeading => IsHistoryMode ? SelectedCategoryLabel + BillingPeriodLabel + "耗电" : SelectedCategoryLabel + "功耗趋势";
     public string CurveLabel => IsWholePcView ? "整机估算 · W" : "硬件曲线 · W";
-    public bool NeedsCpuPermission => (_dashboard as IChannelDashboardService)?.Channels.Any(c =>
-        c.Kind == PowerComponentKind.Cpu && c.Availability == PowerAvailability.PermissionDenied) == true;
-    public string WholePcStatus => NeedsCpuPermission ? "还差 CPU 功率，允许 Windows 授权后继续" :
-        Latest is { HasUsablePower: true } ? "已自动汇总这台电脑的功耗" : "CPU 或显卡功率暂不可读，其他硬件仍在记录";
+    public HardwareReadinessResult HardwareStatus => Settings?.HardwareStatus ?? HardwareReadiness.Evaluate((_dashboard as IChannelDashboardService)?.Channels ?? []);
+    public void NotifyHardwareStatus() { Settings?.Notify(); NotifyAll(); }
+    public bool NeedsCpuPermission => HardwareStatus.CanRequestAdministrator;
+    public string WholePcStatus => HardwareStatus.WholePc.Summary;
     public string WholePcDetail => (_dashboard as IChannelDashboardService)?.Channels.FirstOrDefault(c => c.Id == SelectedSource)?.Detail ??
         "自动识别硬件：优先读取功率，内存、硬盘、风扇等缺少瓦数时采用明确标注的估算。不含显示器。";
     public ICommand ShowWholePcCommand => new AsyncRelayCommand(_ => ChangePowerViewAsync(true), e => ReportError(e.Message));
@@ -218,7 +218,9 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         NotifyAll();
     }
     public string SamplingButtonText => IsSampling ? "暂停记录" : "恢复记录";
-    public string StatusText => ErrorMessage.Length > 0 ? "记录需要留意" : IsSampling ? "正在记录" : "已暂停";
+    public string StatusText => ErrorMessage.Length > 0 ? "记录需要留意" : !IsSampling ? "已暂停" :
+        !HasHardwareChannels ? "正在记录" : HardwareStatus.WholePc.State == HardwareReadinessState.Detecting ? "正在检测硬件" :
+        HardwareStatus.WholePc.State != HardwareReadinessState.Ready ? "记录中 · 整机功率不可读" : "正在记录";
     public string ErrorMessage { get; private set; } = "";
     public string SourceText => _dashboard.SourceDisplayName;
     private PowerSample? Latest => _snapshot?.LatestSample;

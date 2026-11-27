@@ -20,7 +20,8 @@ public sealed partial class MainViewModel
     public string CompactDataBadge => IsSimulated ? "模拟数据" : FocusedChannel is null || !CurrentSourceReadable ? "暂无数据" : FocusedChannel.IsEstimated ? "估算" :
         FocusedChannel is { Kind: PowerComponentKind.Gpu, IsPrimary: false } ? "局部读数" : "传感器读数";
     public string CompactPowerHint => !IsSampling ? "已暂停 · 暂停时段不补算" : ErrorMessage.Length > 0 ? "读取中断 · 正在重试" :
-        NeedsCpuPermission && (SelectedCategoryKey is "cpu" or "whole") && Latest?.HasUsablePower != true ? "CPU 需要 Windows 授权" :
+        SelectedCategoryKey == "cpu" && HardwareStatus.Cpu.State != HardwareReadinessState.Ready ? HardwareStatus.Cpu.Summary :
+        SelectedCategoryKey == "whole" && HardwareStatus.WholePc.State != HardwareReadinessState.Ready ? HardwareStatus.WholePc.Summary :
         Latest is null ? "等待首次读数" : !Fresh ? "读数已过期 · 等待更新" :
         !CurrentSourceReadable || !Latest.HasUsablePower ? "暂不可读 · 未按零计算" :
         IsSimulated ? "演示数据，非真实测量" : IsWholePcView ? FocusedChannel?.Scope == "主机 + 外设" ? "主机 + 外设估算" : FocusedChannel?.IsEstimated == true ? "主机估算 · 不含独立供电外设" : "电源输入读数 · 不含独立供电外设" :
@@ -32,6 +33,10 @@ public sealed partial class MainViewModel
     public string ChartFooter => IsHistoryMode ? HistoryFooter : !IsSampling ? "已暂停记录" : Latest is null ? "等待第一条记录" :
         "更新于 " + TimeZoneInfo.ConvertTime(Latest.Timestamp, _zone).ToString("HH:mm:ss");
     public bool ShowCpuPermissionHelp => NeedsCpuPermission && (SelectedCategoryKey == "cpu" || SelectedCategoryKey == "whole" && Latest?.HasUsablePower != true);
+    public bool ShowHardwareHelp => IsSampling && HasHardwareChannels && (SelectedCategoryKey == "cpu" &&
+        HardwareStatus.Cpu.State is not (HardwareReadinessState.Ready or HardwareReadinessState.Detecting) ||
+        SelectedCategoryKey == "whole" && HardwareStatus.WholePc.State is not (HardwareReadinessState.Ready or HardwareReadinessState.Detecting));
+    public string HardwareHelpMessage => SelectedCategoryKey == "cpu" ? HardwareStatus.Cpu.Detail : HardwareStatus.WholePc.Detail;
 
     private AsyncRelayCommand? _selectCategory;
     public AsyncRelayCommand SelectCategoryCommand => _selectCategory ??= new(async value =>

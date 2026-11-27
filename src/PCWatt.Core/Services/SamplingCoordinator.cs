@@ -124,6 +124,38 @@ public sealed class SamplingCoordinator(Func<IPowerSource> sourceFactory, IEnerg
         finally { _gate.Release(); }
     }
 
+    public async Task RecheckHardwareAsync()
+    {
+        if (_shutdown.IsCancellationRequested) throw new InvalidOperationException("采样器正在退出，无法重新检测硬件。");
+        if (_suspended) throw new InvalidOperationException("系统正在休眠，恢复后再重新检测硬件。");
+        InterruptRead();
+        await _gate.WaitAsync();
+        try
+        {
+            if (_shutdown.IsCancellationRequested) throw new InvalidOperationException("采样器正在退出，无法重新检测硬件。");
+            if (_suspended) throw new InvalidOperationException("系统正在休眠，恢复后再重新检测硬件。");
+            await FlushCoreAsync();
+            _boundary = true;
+            _discovered = false;
+            await ReleaseSourceAsync();
+            LatestSample = null;
+            _latestSamples = [];
+            _shutdown.Token.ThrowIfCancellationRequested();
+            await ReadCoreAsync(record: false);
+            await FlushCoreAsync();
+            LastError = null;
+            if (_paused || _shutdown.IsCancellationRequested) await ReleaseSourceAsync();
+        }
+        catch (Exception exception)
+        {
+            _boundary = true;
+            LastError = $"重新检测硬件未完成：{exception.Message}";
+            await ReleaseSourceAsync();
+            throw;
+        }
+        finally { _gate.Release(); WakeAndNotify(); }
+    }
+
     public async Task StopAsync()
     {
         _paused = true;

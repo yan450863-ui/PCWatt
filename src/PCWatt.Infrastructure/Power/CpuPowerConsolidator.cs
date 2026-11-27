@@ -26,7 +26,8 @@ public static class CpuPowerConsolidator
                 $"CPU × {packages.Count}", PowerComponentKind.Cpu, "/cpu/all-packages/power", "CPU Package",
                 valid ? packages.Sum(p => p.Watts!.Value) : null,
                 valid ? PowerAvailability.Available : PowerAvailability.ReadFailed,
-                valid ? "独立 CPU 插槽封装功率之和，不含其重复核心/SoC 通道。" : "至少一个 CPU 插槽的封装功率不可用。"));
+                valid ? "独立 CPU 插槽封装功率之和，不含其重复核心/SoC 通道。" : "至少一个 CPU 插槽的封装功率不可用。")
+                { AccessIssue = valid ? null : packages.FirstOrDefault(package => package.AccessIssue is not null)?.AccessIssue });
         }
         return result;
     }

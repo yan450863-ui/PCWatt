@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "PCWATT_DIR=%~dp0artifacts\build-lean-backup\bin\PCWatt.App\release"
+set "PCWATT_DIR=%~dp0artifacts\build-hardware-diagnostics\bin\PCWatt.App\release"
 if not exist "%PCWATT_DIR%\Launch.cmd" goto build
 call "%PCWATT_DIR%\Launch.cmd" %*
 exit /b %errorlevel%
@@ -9,7 +9,7 @@ exit /b %errorlevel%
 where dotnet >nul 2>nul
 if errorlevel 1 goto missing
 pushd "%~dp0"
-dotnet build PCWatt.sln -c Release --artifacts-path "%~dp0artifacts\build-lean-backup"
+dotnet build PCWatt.sln -c Release --artifacts-path "%~dp0artifacts\build-hardware-diagnostics"
 if errorlevel 1 goto failed
 popd
 call "%PCWATT_DIR%\Launch.cmd" %*

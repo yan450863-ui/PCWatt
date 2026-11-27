@@ -1,7 +1,7 @@
 # PC Watt
 
-- 项目版本：0.3.2（已公开预览版）
-- 最近实质修改日期：2026-10-28
+- 项目版本：0.3.3-preview.1（main 源码预览；公开发行版仍为 0.3.2）
+- 最近实质修改日期：2026-11-27
 - 公开仓库：https://github.com/yan450863-ui/PCWatt
 - 已发布：https://github.com/yan450863-ui/PCWatt/releases/tag/v0.3.2
 
@@ -11,6 +11,7 @@
 
 ## 当前进度
 
+- 0.3.3-preview.1 源码在 main 分支加入 PawnIO 故障分类、CPU/显卡/整机状态显示、手动重新检测及诊断复制。驱动安装仍由用户主动打开官方页面并自行完成；检测不自动安装驱动、不上传信息，也不增加采样循环。61 项定向测试通过，Release 构建位于 `artifacts/build-hardware-diagnostics/bin/PCWatt.App/release`；验证见 [硬件诊断预览验证](docs/VALIDATION-HARDWARE-DIAGNOSTICS-2026-11-27.md)。
 - 第一至第三阶段已实现：工程骨架、生命周期与设置、人民币电价历史和启动通知。
 - 界面已改为暖白纸中性底色 + 单一墨青强调色（#0F766E，浅色单主题）：自绘标题栏（品牌、当前页、记录状态、最小化/最大化/关闭）、Windows 11 圆角与系统阴影、底部固定状态栏。
 - 配色与界面规则已抽成工作区共用规范 `D:\工作间\精简软件配色`（令牌表 + WPF/CSS/Compose 三份令牌文件），本项目是参照实现。
@@ -53,7 +54,7 @@
 ## 当前采用的方案
 
 - 工程与可运行版本集中放在 `D:\工作间\PCWatt`，沿用原有解决方案结构。
-- 本地工程入口：根目录 `启动.cmd` 调用 artifacts/build-lean-backup/bin/PCWatt.App/release/Launch.cmd，未构建时先执行独立目录的 Release 构建；该工程入口需要 .NET 10 SDK，已有构建运行需要对应 Desktop Runtime。
+- 本地工程入口：根目录 `启动.cmd` 调用 artifacts/build-hardware-diagnostics/bin/PCWatt.App/release/Launch.cmd，未构建时先执行独立目录的 Release 构建；该工程入口需要 .NET 10 SDK，已有构建运行需要对应 Desktop Runtime。
 - 本地 0.3.2 安装包：artifacts/releases/0.3.2/PCWatt-0.3.2-Setup-win-x64.exe（0.2.0、0.3.0、0.3.1 包保留），另有 ZIP、中文说明和 SHA256；已公开到 GitHub v0.3.2，公开版 0.1.0 保留。
 - 已公开 0.1.0 安装包：artifacts/releases/0.1.0/PCWatt-0.1.0-Setup-win-x64.exe，另有完整解压 ZIP、使用说明及 SHA256。安装版/解压版自带 .NET 10.0.12，直接运行 PCWatt.App.exe，无需单独安装运行时。旧预览目录和 ZIP 均保留。
 - 0.3.2 发布源码提交为 5f98fe85a6e3b44a20b1819d57b559e17657ecb6，四个附件的服务端 SHA256 已核对；发行记录见 docs/VALIDATION-GITHUB-0.3.2.md。

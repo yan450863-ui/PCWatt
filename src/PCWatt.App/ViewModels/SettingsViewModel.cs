@@ -12,18 +12,32 @@ public sealed partial class SettingsViewModel(Func<AppSettings> getSettings, Fun
     Func<DateOnly, ElectricityTariff, Task>? addTariff = null,
     Func<Task<DailyEnergySnapshot>>? yesterday = null, Func<Task>? priceChanged = null,
     Func<IReadOnlyList<PowerChannel>>? powerChannels = null, Func<Task>? requestAdministrator = null,
-    bool administrator = false, Func<Task<string?>>? backupData = null, Func<Task<string?>>? restoreData = null) : INotifyPropertyChanged
+    bool administrator = false, Func<Task<string?>>? backupData = null, Func<Task<string?>>? restoreData = null,
+    Func<Task>? recheckHardware = null, Action<string>? copyDiagnostics = null, Action? openDriverPage = null) : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     public bool AutoStartEnabled => getSettings().AutoStartEnabled;
     public bool RequestAdministratorOnLaunch => getSettings().RequestAdministratorOnLaunch;
-    public string HardwareAccessStatus => administrator ? "完整硬件读取已启用；传感器仍取决于设备支持。" : "允许 Windows 管理员授权后，可尝试读取 CPU 功耗。";
-    public AsyncRelayCommand EnableCpuReadCommand => new(async _ =>
+    public string HardwareAccessStatus => HardwareStatus.Cpu.Detail;
+    private AsyncRelayCommand? _enableCpuRead;
+    public AsyncRelayCommand EnableCpuReadCommand => _enableCpuRead ??= new(async _ =>
     {
+        if (!HardwareStatus.CanRequestAdministrator)
+        {
+            HardwareFeedback = HardwareStatus.Cpu.Detail;
+            Notify();
+            return;
+        }
+        if (administrator)
+        {
+            HardwareFeedback = "已在管理员模式下运行，但 CPU 接口仍拒绝访问。请检查驱动状态；重复授权无法解决。";
+            Notify();
+            return;
+        }
         if (requestAdministrator is not null) await requestAdministrator();
-        Feedback = administrator ? "已在管理员模式下运行。" : "已请求授权；若取消，仍继续记录可读取的硬件。";
+        HardwareFeedback = "已请求 Windows 授权；若取消，仍继续记录可读取的硬件。";
         Notify();
-    }, e => { Feedback = "授权未完成：" + e.Message; Notify(); });
+    }, e => { HardwareFeedback = "授权未完成：" + e.Message; Notify(); });
     public bool CloseToTray => getSettings().CloseToTray;
     public bool MotionEnabled => getSettings().MotionEnabled;
     public bool StartNotificationEnabled => getSettings().StartNotificationEnabled;

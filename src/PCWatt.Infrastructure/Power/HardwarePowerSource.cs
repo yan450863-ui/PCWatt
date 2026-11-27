@@ -53,7 +53,7 @@ public sealed class LibreHardwareMonitorAdapter(IClock clock, Func<IHardwarePowe
                 reading.SensorName.Contains("Board", StringComparison.OrdinalIgnoreCase) ||
                 reading.SensorName.Equals("GPU Power", StringComparison.OrdinalIgnoreCase) ||
                 reading.SensorName.Equals("CPU Power", StringComparison.OrdinalIgnoreCase) ||
-                reading.Kind is PowerComponentKind.Memory or PowerComponentKind.Storage));
+                reading.Kind is PowerComponentKind.Memory or PowerComponentKind.Storage) { AccessIssue = reading.AccessIssue });
             var flags = availability != PowerAvailability.Available ? PowerQualityFlags.SensorUnavailable : PowerQualityFlags.None;
             if (!valid) flags |= value.HasValue ? PowerQualityFlags.InvalidPower : PowerQualityFlags.MissingPower;
             samples.Add(new(timestamp, valid && availability == PowerAvailability.Available ? (decimal)value!.Value : null,
