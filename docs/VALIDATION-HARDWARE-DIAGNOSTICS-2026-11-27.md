@@ -1,7 +1,7 @@
 # 本地硬件诊断预览版验证
 
 - 验证日期：2026-11-27（北京时间）
-- 版本：0.3.3-preview.1（main 源码预览；未创建 GitHub Release）
+- 版本：0.3.3-preview.1（已发布为 GitHub 公开预览版）
 - 范围：CPU/PawnIO 故障分类、设置页状态提示、重新检测、诊断信息复制与采样边界。
 
 ## 实现内容
@@ -22,7 +22,7 @@
   dotnet build PCWatt.sln -c Release --no-restore --artifacts-path "artifacts/build-hardware-diagnostics"
   ```
 
-- 根目录预览入口：`启动.cmd` 调用 `artifacts/build-hardware-diagnostics/bin/PCWatt.App/release/Launch.cmd`，缺少构建时将源码 Release 输出到同一目录。未生成安装包、未创建 GitHub Release，也未启动此预览程序进行手动界面验收。
+- 根目录预览入口：`启动.cmd` 调用 `artifacts/build-hardware-diagnostics/bin/PCWatt.App/release/Launch.cmd`，缺少构建时将源码 Release 输出到同一目录。安装包与 ZIP 已通过隔离安装、内置运行时、SQLite 和卸载检查；本轮未启动主界面做人工交互验收，完整附件与哈希见 [GitHub 发布验证](VALIDATION-GITHUB-0.3.3-preview.1.md)。
 
 定向测试命令：
 

@@ -6,9 +6,9 @@ PC Watt 是一个面向 Windows 的开源功耗与电费查看器。填写自己
 
 本地保存，无账号、无广告，不上传使用记录。界面保持简单，关闭后留在托盘继续记录。
 
-**[下载安装包](https://github.com/yan450863-ui/PCWatt/releases/tag/v0.3.2)** · [问题反馈](https://github.com/yan450863-ui/PCWatt/issues) · [使用说明](docs/INSTALLATION.txt)
+**[下载安装包（推荐）](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Setup-win-x64.exe)** · [完整 ZIP](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-win-x64.zip) · [SHA256](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/SHA256SUMS.txt) · [中文安装说明](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Readme-zh-CN.txt) · [问题反馈](https://github.com/yan450863-ui/PCWatt/issues) · [使用说明](docs/INSTALLATION.txt)
 
-当前版本：**0.3.2（预览版）**。Windows 10 1809+ / Windows 11，x64。安装包已包含 .NET 10，不用额外安装运行环境；Windows 10 和不同硬件仍需更多实机验证。
+当前版本：**0.3.3-preview.1（公开预览版）**。Windows 10 1809+ / Windows 11，x64。安装包已包含 .NET 10，不用额外安装运行环境。查看[本版更新说明](docs/releases/0.3.3-preview.1.md)。
 
 ![PC Watt 界面预览，图中为测试数据，非真实测量](docs/images/overview-fixture.png)
 
@@ -19,6 +19,7 @@ PC Watt 是一个面向 Windows 的开源功耗与电费查看器。填写自己
 - **把电费放在首页**：小时、日、周、月、年切换，日期栏查看历史和前后时段；图表与费用使用同一范围，历史费用按当时电价计算。
 - **看清哪些部件在用电**：整机、CPU、显卡、外设、其他五项切换；图例、波浪分层和悬浮窗统一按 CPU、显卡、外设、其他排列，内存归入主机“其他”。主机自动识别，无需手动校准。
 - **顺手看看温度和占用**：显示 CPU / 显卡温度，以及 CPU / 显卡 / 内存占用率；读不到时保持未知。“更多传感器”可查看硬盘温度、风扇转速、CPU/显卡附加温度与读取状态。
+- **硬件故障更好排查**：设置页分别显示 CPU、显卡和整机状态；CPU 读取失败时区分 PawnIO 缺失、停止、接口不可用和权限不足，可手动重检测并复制诊断信息。软件不会自动安装驱动或上传诊断。
 - **托盘后台记录**：关闭窗口释放界面，点开重新加载；鼠标悬浮托盘图标查看整机功率和温度。清理硬件库重复历史缓存，已断开来源仅保存一次结束点。
 - **四档记录模式**：精细 5 秒、细 10 秒、一般 30 秒、省电 1 分钟，默认一般。
 - **按自己的电价算钱**：设置人民币元/度和生效日期，保留电价历史。首次未配置电价时直接定位输入；今日卡片按两天共同记录的相同钟点比较电费，至少 30 分钟且都有人民币电价才显示。
@@ -28,13 +29,13 @@ PC Watt 是一个面向 Windows 的开源功耗与电费查看器。填写自己
 
 ## 开始使用
 
-1. 在 [Releases](https://github.com/yan450863-ui/PCWatt/releases) 下载 `PCWatt-0.3.2-Setup-win-x64.exe`，双击安装。
+1. 下载 [PCWatt-0.3.3-preview.1-Setup-win-x64.exe](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-Setup-win-x64.exe)，双击安装。
 2. 打开 PC Watt，在设置里填写自己的电价（元/度）。
 3. 等待可用硬件读数并开始记录。需要完全退出时，从右下角托盘菜单选择“退出”。
 
 安装本身不需要管理员权限。默认启用登录自启动和启动时请求完整硬件读取，可分别在设置中关闭；完整硬件读取使用正常 Windows UAC 授权，取消后仍可记录可用项目。
 
-也提供 `PCWatt-0.3.2-win-x64.zip`：解压完整目录后运行 `PCWatt.App.exe`。它同样使用本地用户数据目录，不是数据随 U 盘移动的便携模式。不要只复制 EXE 而丢掉其余文件。
+也提供 [PCWatt-0.3.3-preview.1-win-x64.zip](https://github.com/yan450863-ui/PCWatt/releases/download/v0.3.3-preview.1/PCWatt-0.3.3-preview.1-win-x64.zip)：解压完整目录后运行 `PCWatt.App.exe`。它同样使用本地用户数据目录，不是数据随 U 盘移动的便携模式。不要只复制 EXE 而丢掉其余文件。
 
 当前安装包未作代码签名，Windows 可能显示“未知发布者”或信誉提示。请认准本仓库 Releases，并使用附件 `SHA256SUMS.txt` 核对下载内容。
 
